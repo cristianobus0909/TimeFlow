@@ -1,91 +1,125 @@
-# ⚡ TimeFlow — Smart Time Tracker & Planner
+# ⚡ TimeFlow — Enterprise-Grade Smart Time Tracker
 
-**TimeFlow** es un gestor de tiempo inteligente y planificador de tareas premium diseñado para optimizar tu flujo de trabajo. Permite estimar tareas, arrastrarlas para ordenarlas, registrar sesiones de tiempo en vivo y controlar tu actividad de manera discreta mediante widgets flotantes de escritorio.
+[![Node Version](https://img.shields.io/badge/node-%3E%3D20.0.0-blue.svg)](https://nodejs.org/)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![React](https://img.shields.io/badge/frontend-React%20%7C%20TS%20%7C%20Tailwind-blueviolet.svg)](https://react.dev/)
+[![Database](https://img.shields.io/badge/database-MongoDB-brightgreen.svg)](https://www.mongodb.com/)
 
----
-
-## ✨ Características Destacadas
-
-* 🎨 **Estética Visual Premium:** Interfaz ultra moderna con soporte de temas claro y oscuro dinámicos y armonía en toda la paleta de colores.
-* 📦 **Aplicación Web Progresiva (PWA):** Instala la aplicación directamente en tu navegador y accede a ella como si fuera un programa nativo de Windows.
-* 🖼️ **Píldora Flotante "Siempre al Frente" (Document Picture-in-Picture):** Al activar el Modo Compacto, la aplicación abre una pequeña ventana flotante nativa del sistema operativo que permanece por delante de cualquier programa (VS Code, Excel, etc.), manteniéndose visible mientras trabajas.
-* 🔄 **Transición entre Tareas Automática con Cuenta Regresiva:** Al finalizar una tarea del proyecto, el sistema calcula de forma secuencial la siguiente tarea pendiente y activa una cuenta regresiva animada de 5 segundos antes de iniciar el siguiente temporizador automáticamente.
-* 🔢 **Multiplicador de Tareas:** Permite duplicar o multiplicar tareas en cantidad al asignarlas a un proyecto, ideal para estructurar flujos repetitivos.
-* ⌨️ **Teclas de Acceso Rápido (Hotkeys):** Controla tu temporizador sin tocar el ratón.
+**TimeFlow** es una plataforma premium de control de tiempo y planificación de proyectos de grado empresarial. Diseñada bajo un enfoque centrado en la productividad diaria, la aplicación combina planificación de proyectos con estimaciones ponderadas, ejecución secuencial de tareas con cuentas regresivas automatizadas y un widget flotante siempre al frente utilizando la API nativa de **Document Picture-in-Picture** del navegador.
 
 ---
 
-## 🛠️ Tecnologías Utilizadas
+## 🏗️ Arquitectura del Sistema
 
-### Frontend
-* **Core:** React, TypeScript, React Router.
-* **Estilos:** TailwindCSS v4 & Vanilla CSS Variables.
-* **Compilador:** Vite.
-* **Gestión de Estado:** Zustand (Timer, Auth, Theme, Settings).
-* **Consumo API:** React Query & Fetch.
+El siguiente diagrama muestra la interacción de flujo de datos y la arquitectura técnica de TimeFlow:
 
-### Backend
-* **Entorno:** Node.js, Express.
-* **Base de Datos:** MongoDB & Mongoose.
-* **Autenticación:** JWT (JSON Web Tokens) con renovación de token silenciosa (`sameSite: 'lax'` en cookies).
-* **Pasarela de Pago:** Stripe (Suscripciones Pro integradas).
+```mermaid
+graph TD
+    subgraph Frontend (React Client)
+        UI[PWA / React Interface] <--> Store[Zustand Stores]
+        UI -->|Portals| PiP[Document Picture-in-Picture Window]
+    end
 
----
+    subgraph Backend (Express & Node.js)
+        API[Express API Gateway] --> Auth[Auth Middleware / JWT Validator]
+        API --> Billing[Stripe Billing Manager]
+        API --> DB_Layer[Mongoose ODM]
+    end
 
-## ⌨️ Combinaciones de Teclas (Hotkeys)
+    subgraph Database & Services
+        MongoDB[(MongoDB Database)]
+        StripeAPI[Stripe Gateway]
+    end
 
-### En Modo Completo:
-* <kbd>Ctrl</kbd> + <kbd>K</kbd> / <kbd>⌘</kbd> + <kbd>K</kbd> : Abre la paleta de comandos rápida.
-* <kbd>Alt</kbd> + <kbd>M</kbd> : Minimiza el reproductor a **Modo Compacto / Píldora Flotante**.
-
-### En la Píldora Flotante (Modo Compacto):
-* <kbd>Espacio</kbd> : Pausar / Reanudar el contador.
-* <kbd>S</kbd> : Guardar y finalizar la sesión actual.
-* <kbd>Esc</kbd> : Maximizar la ventana y volver a Modo Completo.
-* <kbd>Alt</kbd> + <kbd>M</kbd> : Maximizar la ventana y volver a Modo Completo.
+    UI <-->|HTTPS API / sameSite: lax Cookie| API
+    DB_Layer <--> MongoDB
+    Billing <--> StripeAPI
+```
 
 ---
 
-## 🚀 Guía de Inicio Rápido
+## 🌟 Características de Nivel Profesional
 
-### Requisitos Previos
-* [Node.js](https://nodejs.org/) (versión 20 o superior)
-* [MongoDB](https://www.mongodb.com/) corriendo de forma local o una URI de MongoDB Atlas.
+### 1. Planificación Avanzada de Proyectos
+* **Estimaciones Ponderadas:** Cálculo de tiempos de entrega en base a promedios ponderados por tarea.
+* **Ordenamiento Dinámico (Drag & Drop):** Reorganización interactiva del orden de ejecución de tareas con recálculo automático de tiempos restantes en tiempo real.
+* **Multiplicador de Tareas:** Clonación masiva inteligente de tareas al estructurar proyectos repetitivos.
 
-### 1. Configuración del Servidor (Backend)
-1. Ve al directorio del servidor:
-   ```bash
-   cd backend
-   ```
-2. Instala las dependencias:
-   ```bash
-   npm install
-   ```
-3. Configura tus variables de entorno en un archivo `.env` (guíate del archivo de muestra si existe):
-   ```env
-   PORT=5000
-   MONGO_URI=mongodb://127.0.0.1:27017/timeflow
-   JWT_SECRET=tu_clave_secreta_jwt
-   JWT_REFRESH_SECRET=tu_clave_secreta_refresh_jwt
-   FRONTEND_URL=http://localhost:5173
-   STRIPE_SECRET_KEY=tu_clave_secreta_stripe
-   ```
-4. Inicia el servidor en modo desarrollo:
-   ```bash
-   npm run dev
-   ```
+### 2. Micro-Reproductor de Escritorio (Document PiP)
+* **Always-on-Top Nativo:** Transición a una ventana flotante ultra-compacta (`380x64`) que se superpone a cualquier programa en ejecución en el sistema operativo.
+* **Sincronización de Temas:** El fondo de la píldora flotante se adapta de forma inmediata a los cambios del selector de tema claro u oscuro.
 
-### 2. Configuración del Cliente (Frontend)
-1. Ve al directorio del cliente:
-   ```bash
-   cd frontend
-   ```
-2. Instala las dependencias:
-   ```bash
-   npm install
-   ```
-3. Inicia el servidor de desarrollo:
-   ```bash
-   npm run dev
-   ```
-4. Abre [http://localhost:5173](http://localhost:5173) en tu navegador preferido.
+### 3. Automatización de Flujos de Trabajo
+* **Transiciones en Cadena:** Al detener una tarea, el backend actualiza su estado a `completed` y localiza la siguiente tarea pendiente del proyecto.
+* **Autostart con Cuenta Regresiva SVG:** Una animación circular de 5 segundos se ejecuta en la píldora para dar inicio automático a la siguiente tarea sin intervención manual.
+
+### 4. Seguridad de Sesión Persistente (JWT + Cookie)
+* **Acceso y Renovación Silenciosa:** Implementación de `accessToken` (15m de expiración en memoria) y `refreshToken` (7d en base de datos y cookie HTTP-only).
+* **Mapeo de Orígenes:** Cookie configurada con `sameSite: 'lax'` para posibilitar llamadas seguras entre puertos (`localhost:5173` y `localhost:5000`) en desarrollo y producción.
+
+---
+
+## ⌨️ Atajos de Teclado (Hotkeys)
+
+| Modo | Teclas | Acción |
+| :--- | :--- | :--- |
+| **Completo** | <kbd>Ctrl/⌘</kbd> + <kbd>K</kbd> | Abrir paleta de comandos rápida. |
+| **Completo** | <kbd>Alt</kbd> + <kbd>M</kbd> | Entrar en Modo Compacto (Píldora flotante). |
+| **Compacto (PiP)** | <kbd>Espacio</kbd> | Pausar / Reanudar temporizador. |
+| **Compacto (PiP)** | <kbd>S</kbd> | Finalizar y guardar sesión actual. |
+| **Compacto (PiP)** | <kbd>Esc</kbd> / <kbd>Alt</kbd> + <kbd>M</kbd> | Salir de Modo Compacto y volver a la pantalla principal. |
+
+---
+
+## 📈 Modelado de Datos (Esquemas Clave)
+
+* **ITask:** Define las especificaciones de la tarea (título, descripción, color, estadísticas de duración mínima/máxima/promedio).
+* **IProjectTask:** Almacena la relación entre tareas y proyectos, gestionando el orden (`order`), la duración acumulada, y su estado (`pending`, `completed`).
+* **ITimeSession:** Registra la sesión de trabajo (inicio, fin, pausas registradas, duración total y dispositivo de ejecución).
+
+---
+
+## 🚀 Guía de Despliegue y Desarrollo
+
+### Requisitos del Sistema
+* Node.js v20.0.0 o superior.
+* Instancia de MongoDB v6.0 o superior.
+
+### Paso 1: Configuración de Variables de Entorno
+Crea un archivo `.env` dentro de la carpeta `/backend` con la siguiente estructura:
+```env
+PORT=5000
+MONGO_URI=mongodb://127.0.0.1:27017/timeflow
+JWT_SECRET=your_jwt_access_secret_key
+JWT_REFRESH_SECRET=your_jwt_refresh_secret_key
+FRONTEND_URL=http://localhost:5173
+STRIPE_SECRET_KEY=your_stripe_secret_key
+```
+
+### Paso 2: Instalación de Dependencias
+```bash
+# Instalar dependencias del servidor
+cd backend
+npm install
+
+# Instalar dependencias del cliente
+cd ../frontend
+npm install
+```
+
+### Paso 3: Inicialización en Desarrollo
+* **Backend Server:** `npm run dev` (ejecuta el compilador TypeScript en segundo plano y arranca con nodemon en el puerto 5000).
+* **Frontend Client:** `npm run dev` (inicia el servidor Vite en el puerto 5173).
+
+### Paso 4: Construcción de Producción
+Para compilar la aplicación para entornos de producción:
+```bash
+# Compilar frontend
+cd frontend
+npm run build
+
+# Compilar backend
+cd ../backend
+npm run build
+```
+Los archivos de salida se ubicarán en sus respectivas carpetas `/dist` listos para ser servidos.
