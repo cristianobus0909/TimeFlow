@@ -1,32 +1,42 @@
-# ⚡ TimeFlow — Enterprise-Grade Smart Time Tracker
+# ⚡ TimeFlow — Enterprise Time Tracker & Planner
 
 [![Node Version](https://img.shields.io/badge/node-%3E%3D20.0.0-blue.svg)](https://nodejs.org/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![React](https://img.shields.io/badge/frontend-React%20%7C%20TS%20%7C%20Tailwind-blueviolet.svg)](https://react.dev/)
 [![Database](https://img.shields.io/badge/database-MongoDB-brightgreen.svg)](https://www.mongodb.com/)
 
-**TimeFlow** es una plataforma premium de control de tiempo y planificación de proyectos de grado empresarial. Diseñada bajo un enfoque centrado en la productividad diaria, la aplicación combina planificación de proyectos con estimaciones ponderadas, ejecución secuencial de tareas con cuentas regresivas automatizadas y un widget flotante siempre al frente utilizando la API nativa de **Document Picture-in-Picture** del navegador.
+**TimeFlow** es una solución de nivel empresarial para el control y planificación del tiempo, desarrollada con estándares de arquitectura limpia y escalable. Integra la estimación ponderada de proyectos, transiciones secuenciales automatizadas de tareas y el uso de la API nativa de **Document Picture-in-Picture** para proporcionar una píldora flotante persistente sobre el escritorio del sistema operativo.
 
 ---
 
-## 🏗️ Arquitectura del Sistema
+## 👨‍💻 Autor y Dirección de Ingeniería
 
-El siguiente diagrama muestra la interacción de flujo de datos y la arquitectura técnica de TimeFlow:
+Este proyecto fue diseñado, estructurado e implementado bajo los estándares de desarrollo de software limpio de:
+
+* **Cristian Bus (cristianobus0909)**
+  * **GitHub:** [github.com/cristianobus0909](https://github.com/cristianobus0909)
+  * **Proyecto Principal:** [TimeFlow Repository](https://github.com/cristianobus0909/TimeFlow)
+
+---
+
+## 🏗️ Arquitectura del Sistema y Flujos de Datos
+
+El siguiente diagrama modela la comunicación entre las capas cliente, estado global, pasarelas de pago y persistencia de datos:
 
 ```mermaid
 graph TD
     subgraph Frontend (React Client)
-        UI[PWA / React Interface] <--> Store[Zustand Stores]
+        UI[PWA / React View Components] <--> Store[Zustand Stores]
         UI -->|Portals| PiP[Document Picture-in-Picture Window]
     end
 
-    subgraph Backend (Express & Node.js)
+    subgraph Backend (Express & Node.js Server)
         API[Express API Gateway] --> Auth[Auth Middleware / JWT Validator]
-        API --> Billing[Stripe Billing Manager]
+        API --> Billing[Stripe Billing SDK]
         API --> DB_Layer[Mongoose ODM]
     end
 
-    subgraph Database & Services
+    subgraph Database & Gateway Services
         MongoDB[(MongoDB Database)]
         StripeAPI[Stripe Gateway]
     end
@@ -38,55 +48,78 @@ graph TD
 
 ---
 
-## 🌟 Características de Nivel Profesional
+## 📂 Estructura del Directorio del Proyecto
 
-### 1. Planificación Avanzada de Proyectos
-* **Estimaciones Ponderadas:** Cálculo de tiempos de entrega en base a promedios ponderados por tarea.
-* **Ordenamiento Dinámico (Drag & Drop):** Reorganización interactiva del orden de ejecución de tareas con recálculo automático de tiempos restantes en tiempo real.
-* **Multiplicador de Tareas:** Clonación masiva inteligente de tareas al estructurar proyectos repetitivos.
+El monorepo está organizado siguiendo principios de diseño modular y separación de responsabilidades:
 
-### 2. Micro-Reproductor de Escritorio (Document PiP)
-* **Always-on-Top Nativo:** Transición a una ventana flotante ultra-compacta (`380x64`) que se superpone a cualquier programa en ejecución en el sistema operativo.
-* **Sincronización de Temas:** El fondo de la píldora flotante se adapta de forma inmediata a los cambios del selector de tema claro u oscuro.
+```text
+├── backend/                       # Servidor de API y Persistencia Mongoose
+│   ├── src/
+│   │   ├── config/                # Configuraciones de Base de Datos y Stripe
+│   │   ├── controllers/           # Controladores de lógica de negocio (Auth, Projects, Sessions)
+│   │   ├── middlewares/           # Capa de Filtros (JWT Auth, Control de Cuotas Pro)
+│   │   ├── models/                # Esquemas y Modelos Mongoose (User, Task, Project, Session)
+│   │   ├── routes/                # Definición de Rutas de la API REST
+│   │   ├── utils/                 # Herramientas Auxiliares (Generador JWT, Cálculos de duraciones)
+│   │   └── index.ts               # Punto de Entrada del Servidor Express
+│   ├── tsconfig.json              # Configuración de compilación TypeScript
+│   └── package.json               # Dependencias del Servidor
+│
+├── frontend/                      # Cliente de Interfaz SPA & PWA
+│   ├── public/                    # Recursos Estáticos (Favicon, Manifest PWA, Service Worker)
+│   ├── src/
+│   │   ├── components/            # Componentes genéricos de UI (Modal, Button, Input, Card)
+│   │   ├── features/              # Módulos Funcionales (Dashboard, Projects, Analytics, Layout)
+│   │   ├── services/              # Cliente HTTP Centralizado con Axios/Fetch
+│   │   ├── store/                 # Almacenamiento Global Zustand (Timer, Theme, Auth)
+│   │   ├── utils/                 # Mapeo de Idiomas y Traductores
+│   │   ├── App.tsx                # Rutas y Componente Raíz
+│   │   ├── index.css              # Sistema de Diseño CSS Vanilla e Importación Tailwind
+│   │   └── main.tsx               # Montaje en el DOM
+│   ├── vite.config.ts             # Configuración del empaquetador Vite
+│   └── package.json               # Dependencias del Frontend
+└── README.md                      # Documentación del Repositorio
+```
 
-### 3. Automatización de Flujos de Trabajo
-* **Transiciones en Cadena:** Al detener una tarea, el backend actualiza su estado a `completed` y localiza la siguiente tarea pendiente del proyecto.
-* **Autostart con Cuenta Regresiva SVG:** Una animación circular de 5 segundos se ejecuta en la píldora para dar inicio automático a la siguiente tarea sin intervención manual.
+---
 
-### 4. Seguridad de Sesión Persistente (JWT + Cookie)
-* **Acceso y Renovación Silenciosa:** Implementación de `accessToken` (15m de expiración en memoria) y `refreshToken` (7d en base de datos y cookie HTTP-only).
-* **Mapeo de Orígenes:** Cookie configurada con `sameSite: 'lax'` para posibilitar llamadas seguras entre puertos (`localhost:5173` y `localhost:5000`) en desarrollo y producción.
+## 🛠️ Estándares de Ingeniería y Buenas Prácticas
+
+### 💡 Principios de Diseño Aplicados (SOLID)
+* **Single Responsibility (SRP):** Cada controlador y ruta del backend se enfoca en una sola entidad. Las tareas del temporizador están completamente desacopladas de las vistas e integradas en `timerStore.ts`.
+* **Seguridad de Tipado Extremo:** Configuración estricta de TypeScript en ambos entornos para garantizar la detección de errores de tipo en tiempo de compilación.
+* **Mapeo de Índices en MongoDB:** El modelo `TaskSchema` y `ProjectSchema` incorporan índices compuestos (`userId: 1, favorite: -1`) para acelerar las búsquedas relacionales en la base de datos.
+* **SameSite Cookie lax Policy:** Implementación de cookies seguras `httpOnly` con política `'lax'` para posibilitar el paso de tokens de renovación cruzada entre puertos en desarrollo local.
+
+---
+
+## 📡 Especificación de la API RESTful (Endpoints Clave)
+
+| Método | Endpoint | Middleware | Descripción |
+| :--- | :--- | :--- | :--- |
+| `POST` | `/api/v1/auth/login` | *Ninguno* | Inicia sesión y retorna token corto junto con cookie de renovación (7d). |
+| `POST` | `/api/v1/auth/refresh` | *Cookie Parser* | Evalúa el `refreshToken` en cookie y genera un nuevo token corto de acceso. |
+| `GET` | `/api/v1/projects/:id` | `authRequire` | Retorna los detalles del proyecto y sus tareas asociadas populadas. |
+| `PUT` | `/api/v1/projects/:id/tasks/:projectTaskId/status` | `authRequire` | Actualiza el estado (`pending`/`completed`) de una tarea de proyecto. |
+| `POST` | `/api/v1/sessions` | `authRequire`, `quotaLimit` | Registra una sesión de tiempo cronometrada (con soporte para pausas). |
 
 ---
 
 ## ⌨️ Atajos de Teclado (Hotkeys)
 
-| Modo | Teclas | Acción |
+| Pantalla | Combinación | Acción |
 | :--- | :--- | :--- |
-| **Completo** | <kbd>Ctrl/⌘</kbd> + <kbd>K</kbd> | Abrir paleta de comandos rápida. |
-| **Completo** | <kbd>Alt</kbd> + <kbd>M</kbd> | Entrar en Modo Compacto (Píldora flotante). |
-| **Compacto (PiP)** | <kbd>Espacio</kbd> | Pausar / Reanudar temporizador. |
-| **Compacto (PiP)** | <kbd>S</kbd> | Finalizar y guardar sesión actual. |
-| **Compacto (PiP)** | <kbd>Esc</kbd> / <kbd>Alt</kbd> + <kbd>M</kbd> | Salir de Modo Compacto y volver a la pantalla principal. |
+| **Global Completa** | <kbd>Ctrl / ⌘</kbd> + <kbd>K</kbd> | Lanzar Paleta de Comandos rápida. |
+| **Global Completa** | <kbd>Alt</kbd> + <kbd>M</kbd> | Entrar a Modo Compacto (Píldora flotante de escritorio). |
+| **Modo Compacto (PiP)** | <kbd>Espacio</kbd> | Pausar / Reanudar temporizador. |
+| **Modo Compacto (PiP)** | <kbd>S</kbd> | Guardar sesión actual en base de datos. |
+| **Modo Compacto (PiP)** | <kbd>Esc</kbd> / <kbd>Alt</kbd> + <kbd>M</kbd> | Salir de Modo Compacto y maximizar aplicación. |
 
 ---
 
-## 📈 Modelado de Datos (Esquemas Clave)
+## 🚀 Instalación y Despliegue
 
-* **ITask:** Define las especificaciones de la tarea (título, descripción, color, estadísticas de duración mínima/máxima/promedio).
-* **IProjectTask:** Almacena la relación entre tareas y proyectos, gestionando el orden (`order`), la duración acumulada, y su estado (`pending`, `completed`).
-* **ITimeSession:** Registra la sesión de trabajo (inicio, fin, pausas registradas, duración total y dispositivo de ejecución).
-
----
-
-## 🚀 Guía de Despliegue y Desarrollo
-
-### Requisitos del Sistema
-* Node.js v20.0.0 o superior.
-* Instancia de MongoDB v6.0 o superior.
-
-### Paso 1: Configuración de Variables de Entorno
-Crea un archivo `.env` dentro de la carpeta `/backend` con la siguiente estructura:
+### Variables de Entorno (Fichero `/backend/.env`)
 ```env
 PORT=5000
 MONGO_URI=mongodb://127.0.0.1:27017/timeflow
@@ -96,30 +129,27 @@ FRONTEND_URL=http://localhost:5173
 STRIPE_SECRET_KEY=your_stripe_secret_key
 ```
 
-### Paso 2: Instalación de Dependencias
+### Inicialización en Modo Desarrollo
 ```bash
-# Instalar dependencias del servidor
+# Ejecutar Servidor Backend
 cd backend
 npm install
+npm run dev
 
-# Instalar dependencias del cliente
-cd ../frontend
+# Ejecutar Cliente Frontend (en una nueva terminal)
+cd frontend
 npm install
+npm run dev
 ```
 
-### Paso 3: Inicialización en Desarrollo
-* **Backend Server:** `npm run dev` (ejecuta el compilador TypeScript en segundo plano y arranca con nodemon en el puerto 5000).
-* **Frontend Client:** `npm run dev` (inicia el servidor Vite en el puerto 5173).
-
-### Paso 4: Construcción de Producción
-Para compilar la aplicación para entornos de producción:
+### Construcción de Compilados para Producción
 ```bash
-# Compilar frontend
+# Compilar Cliente Estático
 cd frontend
 npm run build
 
-# Compilar backend
+# Compilar Servidor Express
 cd ../backend
 npm run build
 ```
-Los archivos de salida se ubicarán en sus respectivas carpetas `/dist` listos para ser servidos.
+Los compilados finales se generarán en sus respectivos directorios `/dist` listos para ser distribuidos en servicios cloud (como Heroku, Render o Vercel).
