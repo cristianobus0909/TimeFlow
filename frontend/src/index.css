@@ -1,0 +1,294 @@
+@import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  --bg-app: #f4f4f5;
+  --bg-card: #ffffff;
+  --bg-input: #ffffff;
+  --bg-badge: #e4e4e7;
+  --border-color: rgba(63, 63, 70, 0.12);
+  --text-main: #18181b;
+  --text-muted: #71717a;
+  --bg-sidebar: #ffffff;
+  --bg-panel-dark: #fafafa;
+  --bg-table-hover: rgba(63, 63, 70, 0.04);
+}
+
+html.dark {
+  --bg-app: #09090b;
+  --bg-card: #18181b;
+  --bg-input: #18181b;
+  --bg-badge: #09090b;
+  --border-color: rgba(63, 63, 70, 0.4);
+  --text-main: #f4f4f5;
+  --text-muted: #a1a1aa;
+  --bg-sidebar: #09090b;
+  --bg-panel-dark: #09090b;
+  --bg-table-hover: rgba(63, 63, 70, 0.1);
+}
+
+@theme {
+  --color-brand-purple: #7C3AED;
+  --color-brand-purple-hover: #6D28D9;
+  --color-brand-emerald: #10B981;
+  --color-brand-emerald-hover: #059669;
+  
+  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 4px;
+}
+
+/* Global Styles */
+html, body, #root {
+  background-color: var(--bg-app);
+  color: var(--text-main);
+  font-family: var(--font-sans);
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  width: 100%;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+/* Map Tailwind utility classes to CSS Variables dynamically */
+.bg-zinc-950 {
+  background-color: var(--bg-sidebar) !important;
+}
+
+.bg-zinc-900 {
+  background-color: var(--bg-card) !important;
+}
+
+.bg-zinc-950\/20 {
+  background-color: var(--bg-panel-dark);
+}
+
+.bg-zinc-950\/40 {
+  background-color: var(--bg-panel-dark);
+}
+
+.bg-zinc-900\/60 {
+  background-color: var(--bg-card);
+}
+
+.border-zinc-800 {
+  border-color: var(--border-color) !important;
+}
+
+.border-zinc-900 {
+  border-color: var(--border-color) !important;
+}
+
+.text-zinc-100 {
+  color: var(--text-main) !important;
+}
+
+.text-zinc-200 {
+  color: var(--text-main) !important;
+}
+
+.text-zinc-300 {
+  color: var(--text-main) !important;
+}
+
+.text-zinc-400 {
+  color: var(--text-muted) !important;
+}
+
+.text-zinc-500 {
+  color: var(--text-muted) !important;
+}
+
+/* Sidebar Specific */
+aside {
+  background-color: var(--bg-sidebar) !important;
+  border-right: 1px solid var(--border-color) !important;
+}
+
+/* ==========================================================================
+   Design System Utilities
+   ========================================================================== */
+
+/* Cards System */
+@utility tf-card {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 1rem;
+  padding: 1.25rem;
+  transition: all 0.2s ease;
+}
+
+@utility tf-card-hover {
+  @apply hover:translate-y-[-2px] shadow-lg shadow-black/5;
+  border-color: var(--text-muted);
+}
+
+/* Form Inputs */
+@utility tf-input {
+  width: 100%;
+  background-color: var(--bg-input);
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+  border-radius: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  outline: none;
+  transition: all 0.2s ease;
+
+  &:focus {
+    border-color: var(--color-brand-purple);
+    box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.2);
+  }
+}
+
+/* Badges */
+@utility tf-badge {
+  font-size: 10px;
+  background-color: var(--bg-badge);
+  border: 1px solid var(--border-color);
+  padding: 0.125rem 0.5rem;
+  border-radius: 9999px;
+  font-weight: 600;
+  color: var(--text-muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+@utility tf-badge-pro {
+  @apply text-[9px] bg-brand-purple/10 border border-brand-purple/20 text-brand-purple font-bold px-1.5 py-0.5 rounded-md uppercase tracking-wider;
+}
+
+@utility tf-badge-success {
+  @apply text-[8px] bg-brand-emerald/10 border border-brand-emerald/20 text-brand-emerald font-extrabold uppercase px-1.5 py-0.5 rounded;
+}
+
+@utility tf-badge-danger {
+  @apply text-[8px] bg-rose-950/20 border border-rose-900/40 text-rose-400 font-extrabold uppercase px-1.5 py-0.5 rounded;
+}
+
+@utility tf-badge-warning {
+  @apply text-[8px] bg-amber-950/20 border border-amber-900/40 text-amber-400 font-extrabold uppercase px-1.5 py-0.5 rounded;
+}
+
+/* Typography Gradient */
+@utility tf-gradient-text {
+  @apply bg-gradient-to-r from-brand-purple to-pink-500 bg-clip-text text-transparent;
+}
+
+/* Glassmorphism */
+@utility tf-glass-panel {
+  background: var(--bg-card);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border-color);
+}
+
+/* Glow effects */
+@utility tf-glow-purple {
+  box-shadow: 0 0 40px -5px rgba(124, 58, 237, 0.1);
+}
+
+@utility tf-glow-emerald {
+  box-shadow: 0 0 40px -5px rgba(16, 185, 129, 0.1);
+}
+
+/* Tables System */
+@utility tf-table-th {
+  padding: 1rem 1.5rem;
+  color: var(--text-muted);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  text-align: left;
+  border-bottom: 1px solid var(--border-color);
+}
+
+@utility tf-table-tr {
+  border-bottom: 1px solid var(--border-color);
+  transition: all 0.2s ease;
+
+  &:hover {
+    background-color: var(--bg-table-hover);
+  }
+}
+
+/* Animation utilities */
+@keyframes pulse-ring {
+  0% {
+    transform: scale(0.95);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.4;
+  }
+  100% {
+    transform: scale(0.95);
+    opacity: 0.8;
+  }
+}
+
+@utility tf-pulse-ring {
+  animation: pulse-ring 2s infinite ease-in-out;
+}
+
+/* Button System Utilities */
+@utility tf-btn {
+  @apply inline-flex items-center justify-center font-semibold rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-purple disabled:opacity-50 disabled:pointer-events-none cursor-pointer;
+}
+
+@utility tf-btn-primary {
+  @apply bg-brand-purple hover:bg-brand-purple-hover text-white shadow-lg shadow-brand-purple/20 focus:ring-brand-purple/50 border border-transparent;
+}
+
+@utility tf-btn-secondary {
+  background-color: var(--bg-card);
+  color: var(--text-main);
+  border: 1px solid var(--border-color);
+  cursor: pointer;
+
+  &:hover {
+    background-color: var(--bg-table-hover);
+  }
+}
+
+@utility tf-btn-danger {
+  @apply bg-rose-600 hover:bg-rose-700 text-white shadow-lg shadow-rose-600/20 focus:ring-rose-500/50 border border-transparent;
+}
+
+@utility tf-btn-ghost {
+  @apply bg-transparent text-zinc-400 hover:text-zinc-200 border border-transparent;
+
+  &:hover {
+    background-color: var(--bg-table-hover);
+  }
+}
+
+@utility tf-btn-sm {
+  @apply px-3 py-1.5 text-xs gap-1.5;
+}
+
+@utility tf-btn-md {
+  @apply px-4 py-2 text-sm gap-2;
+}
+
+@utility tf-btn-lg {
+  @apply px-6 py-3 text-base gap-2.5;
+}
