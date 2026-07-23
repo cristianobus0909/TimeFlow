@@ -49,23 +49,26 @@ class ApiClient {
           const newToken = await this.refreshToken();
           this.isRefreshing = false;
           this.onRefreshed(newToken);
+          
+          headers.set('Authorization', `Bearer ${newToken}`);
+          response = await fetch(url, { ...options, headers });
         } catch (refreshErr) {
           this.isRefreshing = false;
           authStore.getState().clearAuth();
           throw new Error('Su sesión ha expirado. Por favor, inicie sesión de nuevo.');
         }
-      }
-
-      // Wait for the token to be refreshed
-      const retryPromise = new Promise<string>((resolve) => {
-        this.subscribeTokenRefresh((token) => {
-          resolve(token);
+      } else {
+        // Wait for the token to be refreshed (for parallel requests)
+        const retryPromise = new Promise<string>((resolve) => {
+          this.subscribeTokenRefresh((token) => {
+            resolve(token);
+          });
         });
-      });
 
-      const token = await retryPromise;
-      headers.set('Authorization', `Bearer ${token}`);
-      response = await fetch(url, { ...options, headers });
+        const token = await retryPromise;
+        headers.set('Authorization', `Bearer ${token}`);
+        response = await fetch(url, { ...options, headers });
+      }
     }
 
     if (!response.ok) {
