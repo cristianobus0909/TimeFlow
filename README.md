@@ -119,14 +119,22 @@ El monorepo está organizado siguiendo principios de diseño modular y separaci�
 
 ## 🚀 Instalación y Despliegue
 
-### Variables de Entorno (Fichero `/backend/.env`)
+### Variables de Entorno
+
+#### Servidor Backend (Fichero `/backend/.env`)
 ```env
 PORT=5000
-MONGO_URI=mongodb://127.0.0.1:27017/timeflow
+MONGO_URI=mongodb+srv://...  # URI de MongoDB Atlas para producción o local
 JWT_SECRET=your_jwt_access_secret_key
 JWT_REFRESH_SECRET=your_jwt_refresh_secret_key
-FRONTEND_URL=http://localhost:5173
+FRONTEND_URL=http://localhost:5173  # URL de producción en Vercel
 STRIPE_SECRET_KEY=your_stripe_secret_key
+GOOGLE_CLIENT_ID=your_google_client_id.apps.googleusercontent.com  # Credencial Google OAuth2
+```
+
+#### Cliente Frontend (Fichero `/frontend/.env`)
+```env
+VITE_GOOGLE_CLIENT_ID=your_google_client_id.apps.googleusercontent.com  # Credencial Google OAuth2
 ```
 
 ### Inicialización en Modo Desarrollo
@@ -142,14 +150,17 @@ npm install
 npm run dev
 ```
 
-### Construcción de Compilados para Producción
-```bash
-# Compilar Cliente Estático
-cd frontend
-npm run build
+### Despliegue en Producción
+El proyecto está estructurado y optimizado para un despliegue híbrido:
 
-# Compilar Servidor Express
-cd ../backend
-npm run build
-```
-Los compilados finales se generarán en sus respectivos directorios `/dist` listos para ser distribuidos en servicios cloud (como Heroku, Render o Vercel).
+1. **Frontend (Vercel):**
+   * Configura la carpeta raíz como `frontend/`.
+   * El archivo [vercel.json](file:///c:/Users/ADMIN/BACKUP/Desktop/Antora/TimeFlow/frontend/vercel.json) redirige automáticamente todas las rutas al `index.html` para permitir el correcto funcionamiento de `BrowserRouter`.
+   * Agrega la variable `VITE_GOOGLE_CLIENT_ID` y la URL de la API en `VITE_API_URL`.
+
+2. **Backend (Render / Railway):**
+   * Configura la carpeta raíz como `backend/`.
+   * Comando de construcción: `npm install && npm run build` (compila TypeScript a `dist/`).
+   * Comando de inicio: `npm run start` (ejecuta `node dist/index.js`).
+   * Las cookies de sesión (`refreshToken`) están configuradas con `sameSite: 'none'` y `secure: true` para habilitar el refresco automático de tokens entre dominios de forma segura.
+   * Agrega la variable `FRONTEND_URL` (URL de Vercel) para permitir las solicitudes de CORS.
