@@ -10,7 +10,12 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // Pass-through fetch handler
+  // Skip non-GET requests and API requests
+  if (event.request.method !== 'GET' || event.request.url.includes('/api/')) {
+    return;
+  }
+
+  // Pass-through fetch handler for other requests
   event.respondWith(
     fetch(event.request).catch(() => {
       // Offline fallback can be added here in production
