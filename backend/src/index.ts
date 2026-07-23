@@ -28,16 +28,35 @@ connectDB();
 app.use(helmet());
 app.use(cookieParser());
 
-// CORS configuration supporting cookies and handling potential trailing slashes
-const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-const cleanFrontendUrl = frontendUrl.replace(/\/$/, ''); // Remove trailing slash if present
-
-const allowedOrigins = [frontendUrl, cleanFrontendUrl];
-
+// CORS configuration supporting cookies and handling missing protocols / Vercel preview URLs
 const corsOptions = {
   origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
-    // If no origin (like mobile apps or curl) or origin matches allowed, accept it
-    if (!origin || allowedOrigins.includes(origin)) {
+    if (!origin) {
+      callback(null, true);
+      return;
+    }
+
+    const allowedOrigins = [
+      'http://localhost:5173',
+      'http://localhost:3000'
+    ];
+
+    if (process.env.FRONTEND_URL) {
+      const cleanUrl = process.env.FRONTEND_URL.trim().replace(/\/$/, '');
+      allowedOrigins.push(cleanUrl);
+      // If the user forgot to add http:// or https:// in Render env variables, support it:
+      if (!cleanUrl.startsWith('http://') && !cleanUrl.startsWith('https://')) {
+        allowedOrigins.push(`https://${cleanUrl}`);
+        allowedOrigins.push(`http://${cleanUrl}`);
+      }
+    }
+
+    // Check match with explicit origins or any vercel subdomain of time-flow / timeflow
+    const isMatch = allowedOrigins.includes(origin) || 
+                    /^https:\/\/time-flow[a-z0-9-]*\.vercel\.app$/.test(origin) ||
+                    /^https:\/\/timeflow[a-z0-9-]*\.vercel\.app$/.test(origin);
+
+    if (isMatch) {
       callback(null, true);
     } else {
       callback(new Error(`CORS bloqueó el origen: ${origin}`));
