@@ -28,9 +28,21 @@ connectDB();
 app.use(helmet());
 app.use(cookieParser());
 
-// CORS configuration supporting cookies
+// CORS configuration supporting cookies and handling potential trailing slashes
+const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+const cleanFrontendUrl = frontendUrl.replace(/\/$/, ''); // Remove trailing slash if present
+
+const allowedOrigins = [frontendUrl, cleanFrontendUrl];
+
 const corsOptions = {
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+    // If no origin (like mobile apps or curl) or origin matches allowed, accept it
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error(`CORS bloqueó el origen: ${origin}`));
+    }
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
