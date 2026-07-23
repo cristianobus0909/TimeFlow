@@ -22,7 +22,7 @@ export const authenticateToken = (
 
   const payload = verifyAccessToken(token);
   if (!payload) {
-    res.status(403).json({ error: 'Acceso denegado: Token inválido o expirado.' });
+    res.status(401).json({ error: 'Acceso no autorizado: Token inválido o expirado.' });
     return;
   }
 
