@@ -8,9 +8,11 @@ import {
   verifyRefreshToken,
 } from '../utils/jwt';
 import Stripe from 'stripe';
+import { OAuth2Client } from 'google-auth-library';
 
 const stripeSecret = process.env.STRIPE_SECRET_KEY || '';
 const stripe = stripeSecret ? new Stripe(stripeSecret) : null;
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 export const register = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -112,6 +114,11 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
+    if (!user.passwordHash) {
+      res.status(400).json({ error: 'Esta cuenta está registrada con Google. Por favor, inicia sesión con Google o vincula una contraseña.' });
+      return;
+    }
+
     const isMatch = await bcrypt.compare(password, user.passwordHash);
     if (!isMatch) {
       res.status(401).json({ error: 'Credenciales inválidas.' });
@@ -202,5 +209,110 @@ export const logout = async (req: Request, res: Response): Promise<void> => {
   } catch (error) {
     console.error('Error en logout:', error);
     res.status(500).json({ error: 'Error al cerrar sesión.' });
+  }
+};
+
+export const googleAuth = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { idToken } = req.body;
+
+    if (!idToken) {
+      res.status(400).json({ error: 'El ID Token de Google es requerido.' });
+      return;
+    }
+
+    let payload;
+    try {
+      const ticket = await googleClient.verifyIdToken({
+        idToken,
+        audience: process.env.GOOGLE_CLIENT_ID,
+      });
+      payload = ticket.getPayload();
+    } catch (verifyError) {
+      console.error('❌ Error al verificar token de Google:', verifyError);
+      res.status(401).json({ error: 'Token de Google inválido o expirado.' });
+      return;
+    }
+
+    if (!payload || !payload.email || !payload.name) {
+      res.status(400).json({ error: 'El token de Google no contiene la información mínima requerida (email y nombre).' });
+      return;
+    }
+
+    const { email, name, sub: googleId } = payload;
+
+    // Check if user exists
+    let user = await User.findOne({ email });
+
+    if (user) {
+      // Link account if Google ID not set
+      if (!user.googleId) {
+        user.googleId = googleId;
+        await user.save();
+      }
+    } else {
+      // Register user
+      let stripeCustomerId = undefined;
+      if (stripe) {
+        try {
+          const customer = await stripe.customers.create({
+            email,
+            name,
+            metadata: { app: 'TimeFlow' },
+          });
+          stripeCustomerId = customer.id;
+        } catch (stripeError) {
+          console.error('⚠ Error al registrar cliente en Stripe (Google Auth):', stripeError);
+        }
+      }
+
+      user = new User({
+        name,
+        email,
+        googleId,
+        stripeCustomerId,
+        subscriptionPlan: 'free',
+        subscriptionStatus: 'free',
+      });
+
+      await user.save();
+
+      // Create default settings for user
+      const settings = new Settings({
+        userId: user._id,
+      });
+      await settings.save();
+    }
+
+    // Generate tokens
+    const accessToken = generateAccessToken(user._id.toString());
+    const refreshToken = generateRefreshToken(user._id.toString());
+
+    // Save refresh token
+    user.refreshToken = refreshToken;
+    await user.save();
+
+    // Set refresh token cookie
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    });
+
+    res.status(200).json({
+      message: 'Autenticación con Google exitosa.',
+      accessToken,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        subscriptionPlan: user.subscriptionPlan,
+        subscriptionStatus: user.subscriptionStatus,
+      },
+    });
+  } catch (error) {
+    console.error('Error en googleAuth:', error);
+    res.status(500).json({ error: 'Error interno del servidor en la autenticación con Google.' });
   }
 };

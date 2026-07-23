@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -22,6 +22,39 @@ export const LoginPage = () => {
   const { setAuth } = authStore();
   const { showToast } = toastStore();
   const [isLoading, setIsLoading] = useState(false);
+
+  const handleGoogleLogin = async (response: any) => {
+    setIsLoading(true);
+    try {
+      const data = await api.post('/auth/google', { idToken: response.credential }, { skipAuth: true });
+      setAuth(data.user, data.accessToken);
+      showToast('Sesión iniciada correctamente con Google.');
+      navigate('/dashboard');
+    } catch (e: any) {
+      showToast(e.message || 'Error al iniciar sesión con Google.', 'error');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    const initializeGoogleBtn = () => {
+      if ((window as any).google) {
+        (window as any).google.accounts.id.initialize({
+          client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID || '',
+          callback: handleGoogleLogin,
+        });
+        (window as any).google.accounts.id.renderButton(
+          document.getElementById('google-signin-btn'),
+          { theme: 'outline', size: 'large', width: '100%' }
+        );
+      } else {
+        setTimeout(initializeGoogleBtn, 100);
+      }
+    };
+
+    initializeGoogleBtn();
+  }, []);
 
   const {
     register,
@@ -90,6 +123,21 @@ export const LoginPage = () => {
             Iniciar Sesión
           </Button>
         </form>
+
+        {/* Divider */}
+        <div className="relative my-6 flex items-center justify-center">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-zinc-800"></div>
+          </div>
+          <span className="relative px-3 bg-zinc-900 text-xs text-zinc-500 uppercase tracking-wider">
+            O continuar con
+          </span>
+        </div>
+
+        {/* Google Button */}
+        <div className="w-full flex justify-center mb-6">
+          <div id="google-signin-btn" className="w-full" style={{ minHeight: '40px' }} />
+        </div>
 
         <p className="text-center text-xs text-zinc-500 mt-6">
           ¿No tienes una cuenta?{' '}
