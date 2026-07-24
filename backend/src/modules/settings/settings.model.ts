@@ -4,6 +4,7 @@ export interface ISettings extends Document {
   userId: Types.ObjectId;
   language: 'es' | 'en';
   theme: 'dark' | 'light';
+  currency: string;
   timezone: string;
   timeFormat: '12h' | '24h';
   soundAlerts: boolean;
@@ -18,6 +19,7 @@ const SettingsSchema = new Schema<ISettings>(
     userId: { type: Schema.Types.ObjectId, ref: 'User', required: true, unique: true },
     language: { type: String, enum: ['es', 'en'], default: 'es' },
     theme: { type: String, enum: ['dark', 'light'], default: 'dark' },
+    currency: { type: String, default: 'USD' },
     timezone: { type: String, default: 'UTC' },
     timeFormat: { type: String, enum: ['12h', '24h'], default: '24h' },
     soundAlerts: { type: Boolean, default: true },

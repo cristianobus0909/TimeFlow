@@ -5,6 +5,7 @@ import { themeStore } from './themeStore';
 export interface UserSettings {
   language: 'es' | 'en';
   theme: 'dark' | 'light';
+  currency: string;
   timezone: string;
   timeFormat: '12h' | '24h';
   soundAlerts: boolean;
@@ -22,6 +23,7 @@ interface SettingsState {
 const defaultSettings: UserSettings = {
   language: 'es',
   theme: 'dark',
+  currency: 'USD',
   timezone: 'UTC',
   timeFormat: '24h',
   soundAlerts: true,

@@ -6,7 +6,7 @@ import { toastStore } from '@/store/toastStore';
 import { settingsStore } from '@/store/settingsStore';
 import { Card } from '@shared/components/Card';
 import { Button } from '@shared/components/Button';
-import { Sun, Moon, Volume2, Globe, Shield, Sparkles, CreditCard } from 'lucide-react';
+import { Sun, Moon, Volume2, Globe, Shield, Sparkles, CreditCard, DollarSign } from 'lucide-react';
 import { useTranslation } from '@shared/lib/translations';
 
 export const SettingsPage = () => {
@@ -49,6 +49,12 @@ export const SettingsPage = () => {
     const lang = e.target.value as 'es' | 'en';
     updateSettings({ language: lang });
     showToast(`Idioma cambiado a ${lang === 'es' ? 'Español' : 'Inglés'}.`);
+  };
+
+  const handleCurrencyChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const curr = e.target.value;
+    updateSettings({ currency: curr });
+    showToast(`Moneda preferida cambiada a ${curr}.`);
   };
 
   const handleCheckoutPro = async () => {
@@ -231,6 +237,32 @@ export const SettingsPage = () => {
             >
               <option value="es">Español (es)</option>
               <option value="en">English (en)</option>
+            </select>
+          </div>
+
+          {/* Currency dropdown selection */}
+          <div className="flex justify-between items-center bg-zinc-950 p-4 rounded-xl border border-zinc-900 md:col-span-2">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-900 text-zinc-550">
+                <DollarSign className="w-4 h-4" />
+              </div>
+              <div className="flex flex-col text-left">
+                <span className="font-semibold text-zinc-200">Moneda del Sistema</span>
+                <span className="text-[10px] text-zinc-500 mt-0.5">Establece la moneda predeterminada para el cálculo de ingresos y metas.</span>
+              </div>
+            </div>
+            <select
+              value={settings.currency || 'USD'}
+              onChange={handleCurrencyChange}
+              className="bg-zinc-900 border border-zinc-800 text-zinc-300 rounded-xl px-3 py-1.5 font-semibold text-xs outline-none cursor-pointer"
+            >
+              <option value="USD">Dólar Estadounidense ($ USD)</option>
+              <option value="EUR">Euro (€ EUR)</option>
+              <option value="ARS">Peso Argentino ($ ARS)</option>
+              <option value="MXN">Peso Mexicano ($ MXN)</option>
+              <option value="COP">Peso Colombiano ($ COP)</option>
+              <option value="CLP">Peso Chileno ($ CLP)</option>
+              <option value="PEN">Sol Peruano (S/. PEN)</option>
             </select>
           </div>
 

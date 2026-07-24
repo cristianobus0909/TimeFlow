@@ -5,6 +5,8 @@ import { motion } from 'framer-motion';
 import { api } from '@shared/services/api';
 import { timerStore } from '@/store/timerStore';
 import { authStore } from '@/store/authStore';
+import { settingsStore } from '@/store/settingsStore';
+import { getCurrencySymbol } from '@shared/lib/currency';
 import { 
   Play, 
   Target, 
@@ -30,6 +32,11 @@ export const CommandCenterPage: React.FC = () => {
   const { user } = authStore();
   const { showToast } = toastStore();
   const { isRunning, isPaused, seconds, activeSessionId, startTimer, stopTimer, pauseTimer, resumeTimer } = timerStore();
+  const { settings, loadSettings } = settingsStore();
+
+  React.useEffect(() => {
+    loadSettings();
+  }, [loadSettings]);
 
   const [tourStep, setTourStep] = React.useState<number>(() => {
     const completed = localStorage.getItem('tf_onboarding_completed') === 'true';
@@ -278,7 +285,7 @@ export const CommandCenterPage: React.FC = () => {
               Buenos días, {user?.name || 'Christian'} 👋
             </h1>
             <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
-              Hoy has generado <span className="font-bold text-zinc-950 dark:text-white">{today.amount.toFixed(2)} EUR</span> •{' '}
+              Hoy has generado <span className="font-bold text-zinc-950 dark:text-white">{getCurrencySymbol(settings.currency)}{today.amount.toFixed(2)} {settings.currency || 'USD'}</span> •{' '}
               <span className="text-violet-600 dark:text-violet-400 font-bold">{goalPercentage}%</span> del objetivo diario
             </p>
           </div>
@@ -326,12 +333,12 @@ export const CommandCenterPage: React.FC = () => {
             <div className="flex items-baseline justify-between py-4">
               <div className="flex flex-col">
                 <span className="text-xs text-zinc-400">Objetivo</span>
-                <span className="text-xl font-bold text-zinc-950 dark:text-white">{targetAmount} EUR</span>
+                <span className="text-xl font-bold text-zinc-950 dark:text-white">{getCurrencySymbol(settings.currency)}{targetAmount} {settings.currency || 'USD'}</span>
               </div>
               <div className="flex flex-col text-right">
                 <span className="text-xs text-zinc-400">Restan</span>
                 <span className="text-xl font-bold text-emerald-600 dark:text-emerald-400">
-                  {remainingAmount.toFixed(2)} EUR
+                  {getCurrencySymbol(settings.currency)}{remainingAmount.toFixed(2)} {settings.currency || 'USD'}
                 </span>
               </div>
             </div>

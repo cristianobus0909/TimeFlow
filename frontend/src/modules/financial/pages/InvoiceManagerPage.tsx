@@ -7,10 +7,17 @@ import { Button } from '@shared/components/Button';
 import { Modal } from '@shared/components/Modal';
 import { Input } from '@shared/components/Input';
 import { toastStore } from '@/store/toastStore';
+import { settingsStore } from '@/store/settingsStore';
+import { getCurrencySymbol } from '@shared/lib/currency';
 
 export const InvoiceManagerPage: React.FC = () => {
   const queryClient = useQueryClient();
   const { showToast } = toastStore();
+  const { settings, loadSettings } = settingsStore();
+
+  React.useEffect(() => {
+    loadSettings();
+  }, [loadSettings]);
 
   const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
@@ -209,7 +216,7 @@ export const InvoiceManagerPage: React.FC = () => {
                     <td className="py-3.5 pr-4 text-zinc-350">{inv.client?.name || 'Cliente'}</td>
                     <td className="py-3.5 pr-4 text-zinc-500">{new Date(inv.issueDate).toLocaleDateString()}</td>
                     <td className="py-3.5 pr-4 text-zinc-500">{new Date(inv.dueDate).toLocaleDateString()}</td>
-                    <td className="py-3.5 pr-4 text-right font-mono text-zinc-200 font-bold">${inv.total.toFixed(2)}</td>
+                    <td className="py-3.5 pr-4 text-right font-mono text-zinc-200 font-bold">{getCurrencySymbol(settings.currency)}{inv.total.toFixed(2)}</td>
                     <td className="py-3.5 pr-4 text-center">
                       <span className={`px-2 py-0.5 rounded text-[8px] font-extrabold uppercase ${
                         inv.status === 'PAID' ? 'bg-emerald-950/20 text-emerald-400' :
@@ -363,12 +370,12 @@ export const InvoiceManagerPage: React.FC = () => {
           {/* Summary / Total preview */}
           <div className="bg-zinc-950 border border-zinc-900 p-4 rounded-xl flex justify-between items-center mt-2 font-semibold">
             <div className="text-left">
-              <span className="text-[9px] text-zinc-650 block uppercase tracking-wider">Subtotal: ${subtotal.toFixed(2)}</span>
-              <span className="text-[10px] text-zinc-400 block">Impuestos: +${taxes} | Descuento: -${discount}</span>
+              <span className="text-[9px] text-zinc-650 block uppercase tracking-wider">Subtotal: {getCurrencySymbol(settings.currency)}{subtotal.toFixed(2)}</span>
+              <span className="text-[10px] text-zinc-400 block">Impuestos: +{getCurrencySymbol(settings.currency)}{taxes} | Descuento: -{getCurrencySymbol(settings.currency)}{discount}</span>
             </div>
             <div className="text-right">
               <span className="text-[9px] text-zinc-600 block uppercase">Total Factura</span>
-              <span className="text-lg font-black text-brand-purple">${total.toFixed(2)}</span>
+              <span className="text-lg font-black text-brand-purple">{getCurrencySymbol(settings.currency)}{total.toFixed(2)}</span>
             </div>
           </div>
 
@@ -395,7 +402,7 @@ export const InvoiceManagerPage: React.FC = () => {
         {selectedInvoice && (
           <form onSubmit={handleSubmitPayment} className="flex flex-col gap-4 text-xs">
             <p className="text-xs text-zinc-500 mb-2">
-              Registre el cobro de la factura <strong className="text-zinc-200">{selectedInvoice.number}</strong> (Total: ${selectedInvoice.total.toFixed(2)}).
+              Registre el cobro de la factura <strong className="text-zinc-200">{selectedInvoice.number}</strong> (Total: {getCurrencySymbol(settings.currency)}{selectedInvoice.total.toFixed(2)}).
             </p>
 
             <Input
