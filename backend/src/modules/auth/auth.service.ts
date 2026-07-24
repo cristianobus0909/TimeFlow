@@ -5,6 +5,8 @@ import { AuthRepository } from './auth.repository';
 import { RegisterInput, LoginInput } from './auth.schema';
 import { Settings } from '../settings/settings.model';
 import { IUser } from '../users/user.model';
+import { Organization } from '../organizations/organization.model';
+import { seedDatabase } from '@config/seeds';
 import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from '@shared/utils/jwt';
 import { 
   ConflictError, 
@@ -23,6 +25,41 @@ export class AuthService {
 
   constructor() {
     this.repository = new AuthRepository();
+  }
+
+  private async createDefaultOrganization(user: any): Promise<any> {
+    const slug = `workspace-${user._id.toString().substring(18)}`;
+    const org = new Organization({
+      name: `${user.name} Workspace`,
+      slug,
+      owner: user._id,
+      status: 'TRIAL',
+      createdBy: user._id,
+    });
+    await org.save();
+
+    // Populate default tenant categories/rates
+    await seedDatabase(org._id.toString());
+
+    // Update user role and link organization
+    user.organization = org._id;
+    user.role = 'OWNER';
+    await this.repository.save(user);
+
+    // Migrate any legacy projects, tasks and work sessions belonging to this user
+    try {
+      const { Project } = await import('../projects/project.model.js');
+      const { Task } = await import('../tasks/task.model.js');
+      const { WorkSession } = await import('../workSessions/work-session.model.js');
+
+      await Project.updateMany({ createdBy: user._id, organization: { $exists: false } }, { $set: { organization: org._id } });
+      await Task.updateMany({ createdBy: user._id, organization: { $exists: false } }, { $set: { organization: org._id } });
+      await WorkSession.updateMany({ user: user._id, organization: { $exists: false } }, { $set: { organization: org._id } });
+    } catch (e) {
+      logger.error('⚠ Error al migrar datos legacy de organización:', e);
+    }
+
+    return org;
   }
 
   public async register(data: RegisterInput): Promise<{ user: Partial<IUser>; accessToken: string; refreshToken: string }> {
@@ -64,6 +101,9 @@ export class AuthService {
     });
     await settings.save();
 
+    // Create default organization workspace
+    await this.createDefaultOrganization(user);
+
     const accessToken = generateAccessToken(user._id.toString());
     const refreshToken = generateRefreshToken(user._id.toString());
 
@@ -98,6 +138,11 @@ export class AuthService {
     const isMatch = await bcrypt.compare(password, user.passwordHash);
     if (!isMatch) {
       throw new AuthenticationError('Credenciales inválidas.');
+    }
+
+    // Auto-create organization for legacy users on-the-fly
+    if (!user.organization) {
+      await this.createDefaultOrganization(user);
     }
 
     const accessToken = generateAccessToken(user._id.toString());
@@ -164,6 +209,10 @@ export class AuthService {
         user.googleId = googleId;
         await this.repository.save(user);
       }
+      // Auto-create organization for legacy users logging in with Google
+      if (!user.organization) {
+        await this.createDefaultOrganization(user);
+      }
     } else {
       let stripeCustomerId = undefined;
       if (stripe) {
@@ -192,6 +241,9 @@ export class AuthService {
         userId: user._id,
       });
       await settings.save();
+
+      // Create default organization
+      await this.createDefaultOrganization(user);
     }
 
     const accessToken = generateAccessToken(user._id.toString());
