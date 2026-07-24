@@ -6,7 +6,7 @@ import { toastStore } from '@/store/toastStore';
 import { settingsStore } from '@/store/settingsStore';
 import { Card } from '@shared/components/Card';
 import { Button } from '@shared/components/Button';
-import { Sun, Moon, Volume2, Globe, Shield, Sparkles, CreditCard, DollarSign } from 'lucide-react';
+import { Sun, Moon, Volume2, Globe, Shield, Sparkles, CreditCard, DollarSign, Building } from 'lucide-react';
 import { useTranslation } from '@shared/lib/translations';
 
 export const SettingsPage = () => {
@@ -21,6 +21,41 @@ export const SettingsPage = () => {
   useEffect(() => {
     loadSettings();
   }, [loadSettings]);
+
+  const [orgName, setOrgName] = useState('');
+
+  // Fetch active organization
+  const { data: organization, refetch: refetchOrg } = useQuery({
+    queryKey: ['myOrganization'],
+    queryFn: () => api.get('/organizations/me'),
+  });
+
+  useEffect(() => {
+    if (organization?.name) {
+      setOrgName(organization.name);
+    }
+  }, [organization]);
+
+  const updateOrgMutation = useMutation({
+    mutationFn: (name: string) => api.put(`/organizations/${organization._id}`, { name }),
+    onSuccess: () => {
+      refetchOrg();
+      queryClient.invalidateQueries({ queryKey: ['myOrganization'] });
+      showToast('Nombre del espacio de trabajo actualizado.');
+    },
+    onError: (err: any) => {
+      showToast(err.message || 'Error al actualizar el espacio de trabajo.', 'error');
+    }
+  });
+
+  const handleUpdateOrg = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!orgName.trim()) {
+      showToast('El nombre de la organización no puede estar vacío.', 'error');
+      return;
+    }
+    updateOrgMutation.mutate(orgName);
+  };
 
   // Read URL search params for billing success callbacks
   useEffect(() => {
@@ -148,6 +183,39 @@ export const SettingsPage = () => {
               >
                 {t('billingUpgradeBtn')}
               </Button>
+            )}
+          </div>
+        </div>
+      </Card>
+
+      {/* Workspace Settings Panel */}
+      <Card className="flex flex-col gap-6 text-left border-zinc-800/80 bg-zinc-900/40">
+        <div className="flex items-start gap-4">
+          <div className="p-3 bg-brand-purple/10 border border-brand-purple/20 text-brand-purple rounded-2xl mt-0.5">
+            <Building className="w-5 h-5" />
+          </div>
+          <div className="text-left w-full">
+            <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Espacio de Trabajo (Organización)</span>
+            <h3 className="text-sm font-bold text-zinc-200 mt-1">Configuración del Workspace</h3>
+            <p className="text-[11px] text-zinc-500 mt-1 leading-relaxed">
+              Define el nombre de tu organización o empresa. Esto aparecerá en tus reportes y facturas.
+            </p>
+
+            {organization ? (
+              <form onSubmit={handleUpdateOrg} className="flex gap-3 mt-4 max-w-md">
+                <input
+                  type="text"
+                  value={orgName}
+                  onChange={(e) => setOrgName(e.target.value)}
+                  placeholder="Nombre de tu Organización"
+                  className="flex-grow bg-zinc-950 border border-zinc-850 text-zinc-200 rounded-xl px-4 py-2.5 text-xs outline-none focus:border-zinc-700"
+                />
+                <Button type="submit" size="sm" isLoading={updateOrgMutation.isPending}>
+                  Guardar
+                </Button>
+              </form>
+            ) : (
+              <p className="text-xs text-zinc-400 mt-3 italic">Cargando datos del espacio de trabajo...</p>
             )}
           </div>
         </div>
