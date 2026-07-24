@@ -33,6 +33,7 @@ const taskSchema = z.object({
   category: z.string().min(1, 'La categoría es obligatoria'),
   color: z.string().min(1, 'El color es obligatorio'),
   icon: z.string().default('Clock'),
+  project: z.string().optional().nullable(),
 });
 
 type TaskFormValues = z.infer<typeof taskSchema>;
@@ -69,6 +70,12 @@ export const TasksPage = () => {
   const { data: tasks = [], isLoading } = useQuery({
     queryKey: ['tasks'],
     queryFn: () => api.get('/tasks'),
+  });
+
+  // Fetch Projects List (to link them to tasks)
+  const { data: projects = [] } = useQuery({
+    queryKey: ['projects'],
+    queryFn: () => api.get('/projects'),
   });
 
   const handleDragStart = (e: React.DragEvent, taskId: string) => {
@@ -588,6 +595,21 @@ export const TasksPage = () => {
             error={errors.category?.message as string}
             {...register('category')}
           />
+
+          <div className="flex flex-col gap-1.5 text-left">
+            <label className="text-xs font-semibold text-zinc-400 tracking-wide uppercase">Proyecto Asociado (Opcional)</label>
+            <select
+              {...register('project')}
+              className="w-full bg-zinc-900 border border-zinc-850 text-zinc-200 rounded-xl px-4 py-3 text-xs outline-none focus:border-zinc-700"
+            >
+              <option value="">Sin Proyecto</option>
+              {projects.map((proj: any) => (
+                <option key={proj._id} value={proj._id}>
+                  {proj.name}
+                </option>
+              ))}
+            </select>
+          </div>
 
           {/* Color Picker */}
           <div className="flex flex-col gap-1.5">
