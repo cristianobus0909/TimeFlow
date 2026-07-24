@@ -96,13 +96,18 @@ export class AIService {
     // Average project risk checks
     const projects = await Project.find({ organization: orgObjectId, isDeleted: false });
     for (const p of projects) {
-      if (p.estimatedDuration > 0 && p.accumulatedDuration > p.estimatedDuration) {
-        insights.push({
-          type: 'PROJECT_RISK',
-          title: `Desvío de Presupuesto en ${p.name}`,
-          content: `El tiempo acumulado de trabajo real superó la estimación inicial por más de un 10%. Evalúa ajustar tarifas o revisar alcances.`,
-          severity: 'RED',
-        });
+      const budgetHours = p.budgetHours || 0;
+      if (budgetHours > 0) {
+        const projectSessions = await WorkSession.find({ project: p._id, status: 'COMPLETED' });
+        const accumulatedHours = projectSessions.reduce((sum, s) => sum + (s.duration || 0), 0) / 3600;
+        if (accumulatedHours > budgetHours) {
+          insights.push({
+            type: 'PROJECT_RISK',
+            title: `Desvío de Presupuesto en ${p.name}`,
+            content: `El tiempo acumulado de trabajo real (${accumulatedHours.toFixed(1)}h) superó la estimación inicial de presupuesto (${budgetHours}h) en tu proyecto.`,
+            severity: 'RED',
+          });
+        }
       }
     }
 
@@ -193,7 +198,7 @@ export class AIService {
         });
 
         if (response.ok) {
-          const json = await response.json();
+          const json = (await response.json()) as any;
           const reply = json.candidates?.[0]?.content?.parts?.[0]?.text;
           if (reply) {
             // Log tokens and cost (mocking estimates for flash model: $0.00015 / 1k input tokens)
@@ -217,7 +222,7 @@ export class AIService {
         });
 
         if (response.ok) {
-          const json = await response.json();
+          const json = (await response.json()) as any;
           const reply = json.choices?.[0]?.message?.content;
           if (reply) {
             await this.logAICost(orgId, userId, 'OPENAI', 'gpt-4o-mini', 200, 250, 0.0002, action);
@@ -237,7 +242,7 @@ export class AIService {
     orgId: string,
     userId: string,
     provider: string,
-    model: string,
+    modelName: string,
     promptTokens: number,
     completionTokens: number,
     cost: number,
@@ -248,7 +253,7 @@ export class AIService {
         organization: new Types.ObjectId(orgId),
         user: new Types.ObjectId(userId),
         provider,
-        model,
+        aiModel: modelName,
         promptTokens,
         completionTokens,
         totalTokens: promptTokens + completionTokens,

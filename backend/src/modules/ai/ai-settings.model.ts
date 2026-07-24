@@ -4,7 +4,7 @@ import { IAuditFields, ISoftDeleteFields, auditSchemaDefinition, softDeletePlugi
 export interface IAISettings extends Document, IAuditFields, ISoftDeleteFields {
   organization: Types.ObjectId;
   provider: 'GEMINI' | 'OPENAI' | 'CLAUDE' | 'LOCAL';
-  model: string;
+  aiModel: string;
   creativity: number;
   language: string;
   privacy: boolean;
@@ -21,7 +21,7 @@ const AISettingsSchema = new Schema<IAISettings>(
       default: 'GEMINI',
       required: true,
     },
-    model: { type: String, default: 'gemini-1.5-pro', required: true },
+    aiModel: { type: String, default: 'gemini-1.5-pro', required: true },
     creativity: { type: Number, default: 0.7, min: 0, max: 1 },
     language: { type: String, default: 'es' },
     privacy: { type: Boolean, default: true },

@@ -4,7 +4,7 @@ import { IAuditFields, ISoftDeleteFields, auditSchemaDefinition, softDeletePlugi
 export interface IAICostLog extends Document, IAuditFields, ISoftDeleteFields {
   organization: Types.ObjectId;
   provider: string;
-  model: string;
+  aiModel: string;
   promptTokens: number;
   completionTokens: number;
   totalTokens: number;
@@ -18,7 +18,7 @@ const AICostLogSchema = new Schema<IAICostLog>(
   {
     organization: { type: Schema.Types.ObjectId, ref: 'Organization', required: true },
     provider: { type: String, required: true, trim: true },
-    model: { type: String, required: true, trim: true },
+    aiModel: { type: String, required: true, trim: true },
     promptTokens: { type: Number, default: 0 },
     completionTokens: { type: Number, default: 0 },
     totalTokens: { type: Number, default: 0 },
