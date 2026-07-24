@@ -4,7 +4,7 @@ import {
   CheckSquare,
   Folder,
   History,
-  BarChart3,
+  Sparkles,
   Settings,
   LogOut,
   Zap,
@@ -28,7 +28,7 @@ export const Sidebar = () => {
     { name: 'Clientes', path: '/clients', icon: <Users className="w-4 h-4" />, shortcut: '⌥7' },
     { name: 'Calendario', path: '/calendar', icon: <Calendar className="w-4 h-4" />, shortcut: '⌥8' },
     { name: 'Finanzas', path: '/financial', icon: <DollarSign className="w-4 h-4" />, shortcut: '⌥9' },
-    { name: t('navAnalytics'), path: '/analytics', icon: <BarChart3 className="w-4 h-4" />, shortcut: '⌥5' },
+    { name: 'Asistente IA', path: '/ai', icon: <Sparkles className="w-4 h-4 text-brand-purple" />, shortcut: '⌥5' },
     { name: t('navSettings'), path: '/settings', icon: <Settings className="w-4 h-4" />, shortcut: '⌥6' },
   ];
 

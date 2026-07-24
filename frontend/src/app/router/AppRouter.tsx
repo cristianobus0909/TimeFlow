@@ -24,6 +24,7 @@ import { CalendarPage } from '@modules/calendar/pages/CalendarPage';
 import { FinancialDashboardPage } from '@modules/financial/pages/FinancialDashboardPage';
 import { InvoiceManagerPage } from '@modules/financial/pages/InvoiceManagerPage';
 import { ExpenseManagerPage } from '@modules/financial/pages/ExpenseManagerPage';
+import { AIDashboardPage } from '@modules/ai-dashboard/pages/AIDashboardPage';
 
 export const AppRouter: React.FC = () => {
   return (
@@ -39,6 +40,7 @@ export const AppRouter: React.FC = () => {
       <Route element={<ProtectedRoute />}>
         <Route element={<AppLayout />}>
           <Route path="/dashboard" element={<CommandCenterPage />} />
+          <Route path="/ai" element={<AIDashboardPage />} />
           <Route path="/tasks" element={<TasksPage />} />
           <Route path="/projects" element={<ProjectsPage />} />
           <Route path="/projects/:id" element={<ProjectDetailPage />} />

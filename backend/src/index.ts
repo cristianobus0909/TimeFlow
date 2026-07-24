@@ -28,6 +28,7 @@ import attachmentRoutes from '@modules/attachments/attachment.routes';
 import timelineRoutes from '@modules/timeline/timeline.routes';
 import searchRoutes from '@modules/search/search.routes';
 import financialRoutes from '@modules/financial/financial.routes';
+import aiRoutes from '@modules/ai/ai.routes';
 
 const app = express();
 const PORT = env.PORT;
@@ -127,6 +128,7 @@ app.use('/api/v1/attachments', attachmentRoutes);
 app.use('/api/v1/timeline', timelineRoutes);
 app.use('/api/v1/search', searchRoutes);
 app.use('/api/v1/financial', financialRoutes);
+app.use('/api/v1/ai', aiRoutes);
 
 // Global Error Handler Middleware
 app.use(errorHandler);
