@@ -1,5 +1,6 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { api } from '@shared/services/api';
 import { timerStore } from '@/store/timerStore';
@@ -15,7 +16,8 @@ import {
   Star,
   Activity,
   ArrowRight,
-  Briefcase
+  Briefcase,
+  Sparkles
 } from 'lucide-react';
 import { Card } from '@shared/components/Card';
 import { Button } from '@shared/components/Button';
@@ -25,6 +27,70 @@ export const CommandCenterPage: React.FC = () => {
   const { user } = authStore();
   const { showToast } = toastStore();
   const { isRunning, isPaused, seconds, activeSessionId, startTimer, stopTimer, pauseTimer, resumeTimer } = timerStore();
+
+  const [tourStep, setTourStep] = React.useState<number>(() => {
+    const completed = localStorage.getItem('tf_onboarding_completed') === 'true';
+    if (completed) return -1;
+    return 1;
+  });
+
+  const onboardingSteps = [
+    {
+      step: 1,
+      title: "👥 Paso 1: Registra tu primer Cliente",
+      description: "Para facturar tus horas, primero necesitas un cliente. Ve al menú Clientes y agrega los datos de la empresa o contacto.",
+      link: "/clients",
+      btnText: "Ir a Clientes",
+    },
+    {
+      step: 2,
+      title: "📁 Paso 2: Crea un Proyecto Comercial",
+      description: "Asigna tus proyectos a tus clientes para poder trackear presupuesto en horas, rentabilidad y plazos.",
+      link: "/projects",
+      btnText: "Ir a Proyectos",
+    },
+    {
+      step: 3,
+      title: "📝 Paso 3: Planifica y Registra con Tareas",
+      description: "Crea tus tareas, vincúlalas a tus proyectos e inicia el cronómetro o el Modo Focus para registrar tu concentración.",
+      link: "/tasks",
+      btnText: "Ir a Tareas",
+    },
+    {
+      step: 4,
+      title: "💵 Paso 4: Genera tu primera Factura",
+      description: "Crea facturas en Finanzas e importa las horas de las sesiones completadas de tus clientes con un solo clic.",
+      link: "/financial",
+      btnText: "Ir a Finanzas",
+    },
+    {
+      step: 5,
+      title: "🤖 Paso 5: Consulta a tu Asistente IA",
+      description: "Tu asistente matutino (Daily Brief) e IA Coach analizarán tu rendimiento y responderán a tus preguntas en chat.",
+      link: "/ai",
+      btnText: "Ir al Asistente IA",
+    }
+  ];
+
+  const handleNextStep = () => {
+    if (tourStep < 5) {
+      setTourStep(prev => prev + 1);
+    } else {
+      handleCompleteTour();
+    }
+  };
+
+  const handlePrevStep = () => {
+    if (tourStep > 1) {
+      setTourStep(prev => prev - 1);
+    }
+  };
+
+  const handleCompleteTour = () => {
+    localStorage.setItem('tf_onboarding_completed', 'true');
+    setTourStep(-1);
+    showToast('¡Onboarding completado! Disfruta de TimeFlow.');
+  };
 
   const { data: overview, isLoading, error } = useQuery({
     queryKey: ['commandCenterOverview', activeSessionId],
@@ -102,7 +168,67 @@ export const CommandCenterPage: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col gap-6 p-1 max-w-7xl mx-auto w-full select-none">
+    <div className="flex flex-col gap-6 p-1 max-w-7xl mx-auto w-full select-none text-left">
+      {/* 🌟 Guía de Primeros Pasos (Onboarding Tour) */}
+      {tourStep !== -1 && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.98 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="bg-brand-purple/10 border border-brand-purple/20 p-6 rounded-3xl flex flex-col gap-4 text-left relative overflow-hidden"
+        >
+          <div className="flex justify-between items-start gap-4">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-brand-purple animate-pulse" />
+              <h3 className="text-sm font-extrabold text-zinc-150 font-display">
+                Guía de Primeros Pasos • {onboardingSteps[tourStep - 1].title}
+              </h3>
+            </div>
+            <button
+              onClick={handleCompleteTour}
+              className="text-zinc-500 hover:text-zinc-300 text-xs font-semibold cursor-pointer"
+            >
+              Omitir guía
+            </button>
+          </div>
+
+          <p className="text-xs text-zinc-300 leading-relaxed max-w-2xl">
+            {onboardingSteps[tourStep - 1].description}
+          </p>
+
+          <div className="w-full bg-zinc-900 h-1.5 rounded-full overflow-hidden">
+            <div 
+              className="bg-brand-purple h-full transition-all duration-300"
+              style={{ width: `${(tourStep / 5) * 100}%` }}
+            />
+          </div>
+
+          <div className="flex justify-between items-center mt-2">
+            <span className="text-[10px] text-zinc-550 font-bold">
+              Paso {tourStep} de 5
+            </span>
+            <div className="flex gap-2">
+              {tourStep > 1 && (
+                <Button 
+                  size="sm" 
+                  variant="ghost" 
+                  onClick={handlePrevStep}
+                >
+                  Anterior
+                </Button>
+              )}
+              <Link to={onboardingSteps[tourStep - 1].link}>
+                <Button size="sm" variant="secondary">
+                  {onboardingSteps[tourStep - 1].btnText}
+                </Button>
+              </Link>
+              <Button size="sm" onClick={handleNextStep}>
+                {tourStep === 5 ? "Finalizar" : "Siguiente"}
+              </Button>
+            </div>
+          </div>
+        </motion.div>
+      )}
+
       {/* 🚀 Hero Section */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}

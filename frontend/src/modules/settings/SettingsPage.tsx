@@ -233,6 +233,28 @@ export const SettingsPage = () => {
               <option value="en">English (en)</option>
             </select>
           </div>
+
+          {/* Onboarding Guide toggle / reset */}
+          <div className="flex justify-between items-center bg-zinc-950 p-4 rounded-xl border border-zinc-900 md:col-span-2">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-xl border border-zinc-800 bg-zinc-900 text-brand-purple">
+                <Sparkles className="w-4 h-4" />
+              </div>
+              <div className="flex flex-col text-left">
+                <span className="font-semibold text-zinc-200">Guía de Primeros Pasos</span>
+                <span className="text-[10px] text-zinc-500 mt-0.5">Reinicia el tour interactivo para aprender a crear clientes, proyectos y tareas.</span>
+              </div>
+            </div>
+            <button
+              onClick={() => {
+                localStorage.removeItem('tf_onboarding_completed');
+                showToast('Guía de primeros pasos restablecida. Vuelve al Dashboard para iniciar el tour.');
+              }}
+              className="bg-brand-purple/10 border border-brand-purple/30 text-brand-purple hover:bg-brand-purple/20 px-3.5 py-1.5 rounded-xl font-semibold cursor-pointer text-[11px]"
+            >
+              Restablecer Tour
+            </button>
+          </div>
         </div>
       </Card>
     </div>
