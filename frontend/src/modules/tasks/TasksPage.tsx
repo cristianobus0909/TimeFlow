@@ -151,30 +151,21 @@ export const TasksPage = () => {
   };
 
   const handleStopTimer = async () => {
-    const timerData = stopTimer();
-    if (!timerData) return;
-
-    // Play final sound notification if enabled
-    if (soundEnabled && settings.soundAlerts) {
-      try {
-        const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2568/2568-84.wav');
-        audio.volume = 0.5;
-        audio.play();
-      } catch (e) {
-        console.warn('Audio play error:', e);
-      }
-    }
-
     try {
-      await api.post('/sessions', {
-        taskId: activeTaskId,
-        startTime: timerData.startTime,
-        endTime: timerData.endTime,
-        duration: timerData.duration,
-        breaks: timerData.breaks,
-        notes: notes,
-        device: 'desktop',
-      });
+      const timerData = await stopTimer();
+      if (!timerData) return;
+
+      // Play final sound notification if enabled
+      if (soundEnabled && settings.soundAlerts) {
+        try {
+          const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2568/2568-84.wav');
+          audio.volume = 0.5;
+          audio.play();
+        } catch (e) {
+          console.warn('Audio play error:', e);
+        }
+      }
+
       showToast('Sesión guardada con éxito.');
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
     } catch (error: any) {

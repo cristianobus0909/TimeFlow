@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
@@ -18,10 +18,12 @@ export const AppLayout = () => {
   const { showToast } = toastStore();
   const { loadSettings } = settingsStore();
   const { theme } = themeStore();
+  const location = useLocation();
+  const isFocusMode = location.pathname === '/focus';
   const [pipContainer, setPipContainer] = useState<HTMLElement | null>(null);
   
   const {
-    syncFromLocalStorage,
+    syncFromBackend,
     isCompact,
     setCompact,
     activeTaskId,
@@ -46,8 +48,8 @@ export const AppLayout = () => {
   // Sync settings and check running timer on boot
   useEffect(() => {
     loadSettings();
-    syncFromLocalStorage();
-  }, [loadSettings, syncFromLocalStorage]);
+    syncFromBackend();
+  }, [loadSettings, syncFromBackend]);
 
   // Tick the timer globally (persists when sub-components are unmounted in compact mode)
   useEffect(() => {
@@ -98,65 +100,10 @@ export const AppLayout = () => {
   };
 
   const handleCompactStop = async () => {
-    const currentTaskId = activeTaskId;
-    const currentProjectId = activeProjectId;
-    const currentProjectTaskId = activeProjectTaskId;
-
-    const timerData = stopTimer();
-    if (!timerData) return;
-
     try {
-      // 1. Log the session
-      await api.post('/sessions', {
-        taskId: currentTaskId,
-        projectId: currentProjectId,
-        startTime: timerData.startTime,
-        endTime: timerData.endTime,
-        duration: timerData.duration,
-        breaks: timerData.breaks,
-        device: 'desktop',
-      });
+      await stopTimer();
       showToast('Sesión guardada con éxito.');
-
-      // 2. Mark the project task as completed (if run in project context)
-      if (currentProjectId && currentProjectTaskId) {
-        try {
-          await api.put(`/projects/${currentProjectId}/tasks/${currentProjectTaskId}/status`, {
-            status: 'completed',
-          });
-        } catch (err) {
-          console.error('Failed to mark task as completed:', err);
-        }
-      }
-
-      window.dispatchEvent(new CustomEvent('session-logged'));
-
-      // 3. Check if project has a next pending task
-      if (currentProjectId && currentTaskId) {
-        try {
-          const res: any = await api.get(`/projects/${currentProjectId}`);
-          const projectTasks = res.tasks || [];
-          const currentIndex = projectTasks.findIndex((pt: any) => pt.taskId?._id === currentTaskId);
-          const nextPending = projectTasks.slice(currentIndex + 1).find((pt: any) => pt.status === 'pending');
-          
-          if (nextPending) {
-            setAutoStart({
-              taskId: nextPending.taskId._id,
-              projectId: currentProjectId,
-              taskName: nextPending.taskId.name,
-              taskColor: nextPending.taskId.color,
-              projectTaskId: nextPending._id,
-            }, 5);
-          } else {
-            setCompact(false);
-          }
-        } catch (err) {
-          console.error('Failed to trigger auto-start transition:', err);
-          setCompact(false);
-        }
-      } else {
-        setCompact(false);
-      }
+      setCompact(false);
     } catch (error: any) {
       showToast(error.message || 'Error al guardar la sesión.', 'error');
     }
@@ -428,6 +375,15 @@ export const AppLayout = () => {
     return (
       <div className={`${theme === 'dark' ? 'dark bg-zinc-950' : 'bg-zinc-50'} flex items-center justify-center h-screen w-screen overflow-hidden select-none border border-zinc-900/10 dark:border-zinc-800/80`}>
         {miniPlayerContent}
+        <ToastContainer />
+      </div>
+    );
+  }
+
+  if (isFocusMode) {
+    return (
+      <div className="bg-zinc-950 text-zinc-100 h-screen w-screen overflow-hidden select-none">
+        <Outlet />
         <ToastContainer />
       </div>
     );

@@ -1,33 +1,24 @@
 import { Router } from 'express';
+import { ProjectController } from './project.controller';
 import { authenticateToken } from '@core/middleware/auth.middleware';
 import { checkProjectLimit } from '@core/middleware/quota.middleware';
-import {
-  getProjects,
-  getProjectById,
-  createProject,
-  updateProject,
-  deleteProject,
-  addTaskToProject,
-  removeTaskFromProject,
-  reorderProjectTasks,
-  toggleProjectTaskStatus,
-} from './project.controller';
 
 const router = Router();
+const controller = new ProjectController();
 
-// Secure all project endpoints
-router.use(authenticateToken as any);
+// Require authentication for all project routes
+router.use(authenticateToken);
 
-router.get('/', getProjects as any);
-router.get('/:id', getProjectById as any);
-router.post('/', checkProjectLimit as any, createProject as any);
-router.put('/:id', updateProject as any);
-router.delete('/:id', deleteProject as any);
+router.get('/', controller.getProjects);
+router.get('/:id', controller.getProjectById);
+router.post('/', checkProjectLimit, controller.create);
+router.put('/:id', controller.update);
+router.delete('/:id', controller.delete);
 
-// Project Task Relationships
-router.post('/:id/tasks', addTaskToProject as any);
-router.delete('/:id/tasks/:projectTaskId', removeTaskFromProject as any);
-router.put('/:id/tasks/reorder', reorderProjectTasks as any);
-router.put('/:id/tasks/:projectTaskId/status', toggleProjectTaskStatus as any);
+// Task-Project links management
+router.post('/:id/tasks', controller.addTask);
+router.delete('/:id/tasks/:projectTaskId', controller.removeTask);
+router.put('/:id/tasks/reorder', controller.reorderTasks);
+router.put('/:id/tasks/:projectTaskId/status', controller.toggleTaskStatus);
 
 export default router;

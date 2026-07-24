@@ -1,5 +1,6 @@
 import { Task } from '@modules/tasks/task.model';
-import { TimeSession } from '@modules/timer/time-session.model';
+import { WorkSession, IWorkSession } from '@modules/workSessions/work-session.model';
+import { Types } from 'mongoose';
 
 export class StatsService {
   /**
@@ -9,7 +10,10 @@ export class StatsService {
   public static async recalculateTaskStats(taskId: string): Promise<void> {
     try {
       // Get all completed sessions for this task, ordered from oldest to newest
-      const sessions = await TimeSession.find({ taskId }).sort({ createdAt: 1 });
+      const sessions = await WorkSession.find({
+        task: new Types.ObjectId(taskId),
+        status: 'COMPLETED',
+      }).sort({ createdAt: 1 });
 
       const count = sessions.length;
       if (count === 0) {
@@ -28,8 +32,8 @@ export class StatsService {
       let maxDuration = -Infinity;
       const durations: number[] = [];
 
-      sessions.forEach((session) => {
-        const d = session.duration;
+      sessions.forEach((session: IWorkSession) => {
+        const d = session.duration || 0;
         durations.push(d);
         totalDuration += d;
         if (d < minDuration) minDuration = d;
@@ -90,3 +94,4 @@ export class StatsService {
     }
   }
 }
+export default StatsService;

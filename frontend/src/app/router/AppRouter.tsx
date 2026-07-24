@@ -10,13 +10,14 @@ import { AppLayout } from '@app/layouts/AppLayout';
 import { LandingPage } from '@modules/landing/LandingPage';
 import { LoginPage } from '@modules/auth/LoginPage';
 import { RegisterPage } from '@modules/auth/RegisterPage';
-import { DashboardPage } from '@modules/dashboard/DashboardPage';
+import { CommandCenterPage } from '@modules/command-center/pages/CommandCenterPage';
 import { TasksPage } from '@modules/tasks/TasksPage';
 import { ProjectsPage } from '@modules/projects/ProjectsPage';
 import { ProjectDetailPage } from '@modules/projects/ProjectDetailPage';
 import { HistoryPage } from '@modules/history/HistoryPage';
 import { AnalyticsPage } from '@modules/reports/AnalyticsPage';
 import { SettingsPage } from '@modules/settings/SettingsPage';
+import { FocusPage } from '@modules/focus/pages/FocusPage';
 
 export const AppRouter: React.FC = () => {
   return (
@@ -31,13 +32,14 @@ export const AppRouter: React.FC = () => {
       {/* Private App Views (Auth required) */}
       <Route element={<ProtectedRoute />}>
         <Route element={<AppLayout />}>
-          <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/dashboard" element={<CommandCenterPage />} />
           <Route path="/tasks" element={<TasksPage />} />
           <Route path="/projects" element={<ProjectsPage />} />
           <Route path="/projects/:id" element={<ProjectDetailPage />} />
           <Route path="/history" element={<HistoryPage />} />
           <Route path="/analytics" element={<AnalyticsPage />} />
           <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/focus" element={<FocusPage />} />
         </Route>
       </Route>
 

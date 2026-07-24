@@ -1,20 +1,16 @@
 import { Router } from 'express';
+import { WorkSessionController } from './timer.controller';
 import { authenticateToken } from '@core/middleware/auth.middleware';
-import {
-  createSession,
-  getSessions,
-  deleteSession,
-  updateSessionNotes,
-} from './timer.controller';
 
 const router = Router();
+const controller = new WorkSessionController();
 
-// Secure all session endpoints
-router.use(authenticateToken as any);
+// Require authentication for all timer/session routes
+router.use(authenticateToken);
 
-router.post('/', createSession as any);
-router.get('/', getSessions as any);
-router.delete('/:id', deleteSession as any);
-router.put('/:id/notes', updateSessionNotes as any);
+router.get('/', controller.getSessions);
+router.post('/', controller.createSession);
+router.delete('/:id', controller.deleteSession);
+router.put('/:id/notes', controller.updateSessionNotes);
 
 export default router;

@@ -1,46 +1,59 @@
 import { Schema, model, Document, Types } from 'mongoose';
+import { IAuditFields, ISoftDeleteFields, auditSchemaDefinition, softDeletePlugin } from '@shared/utils/schemaHelpers';
 
-export interface IProject extends Document {
-  userId: Types.ObjectId;
+export interface IProject extends Document, IAuditFields, ISoftDeleteFields {
+  organization: Types.ObjectId;
+  client?: Types.ObjectId;
   name: string;
   description?: string;
-  color?: string;
-  priority: 'low' | 'medium' | 'high';
-  status: 'planning' | 'in_progress' | 'completed' | 'paused';
-  client?: string;
+  status: 'PLANNING' | 'ACTIVE' | 'ON_HOLD' | 'COMPLETED' | 'CANCELLED';
+  priority: 'LOW' | 'MEDIUM' | 'HIGH';
+  budgetHours?: number;
+  budgetAmount?: number;
+  hourlyRate?: number;
   startDate?: Date;
   endDate?: Date;
-  estimatedDuration: number;   // in seconds (sum of estimated tasks)
-  accumulatedDuration: number; // in seconds (actual tracked time)
-  remainingDuration: number;   // in seconds
-  completionPercentage: number;
-  breaksDuration: number;      // in seconds
-  deadTimeDuration: number;    // in seconds
-  notes?: string;
+  estimatedCompletion?: Date;
+  tags?: string[];
+  color?: string;
   createdAt: Date;
   updatedAt: Date;
 }
 
 const ProjectSchema = new Schema<IProject>(
   {
-    userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    organization: { type: Schema.Types.ObjectId, ref: 'Organization', required: true },
+    client: { type: Schema.Types.ObjectId, ref: 'Client', required: false },
     name: { type: String, required: true, trim: true },
-    description: { type: String, default: '' },
-    color: { type: String, default: '#10B981' }, // default green
-    priority: { type: String, enum: ['low', 'medium', 'high'], default: 'medium' },
-    status: { type: String, enum: ['planning', 'in_progress', 'completed', 'paused'], default: 'planning' },
-    client: { type: String, default: '' },
+    description: { type: String },
+    status: {
+      type: String,
+      enum: ['PLANNING', 'ACTIVE', 'ON_HOLD', 'COMPLETED', 'CANCELLED'],
+      default: 'PLANNING',
+    },
+    priority: {
+      type: String,
+      enum: ['LOW', 'MEDIUM', 'HIGH'],
+      default: 'MEDIUM',
+    },
+    budgetHours: { type: Number, min: 0 },
+    budgetAmount: { type: Number, min: 0 },
+    hourlyRate: { type: Number, min: 0 },
     startDate: { type: Date },
     endDate: { type: Date },
-    estimatedDuration: { type: Number, default: 0 },
-    accumulatedDuration: { type: Number, default: 0 },
-    remainingDuration: { type: Number, default: 0 },
-    completionPercentage: { type: Number, default: 0 },
-    breaksDuration: { type: Number, default: 0 },
-    deadTimeDuration: { type: Number, default: 0 },
-    notes: { type: String, default: '' },
+    estimatedCompletion: { type: Date },
+    tags: [{ type: String, trim: true }],
+    color: { type: String, trim: true },
+    ...auditSchemaDefinition,
   },
   { timestamps: true }
 );
 
+// Apply soft delete plugin
+ProjectSchema.plugin(softDeletePlugin);
+
+// Create indexes
+ProjectSchema.index({ organization: 1, client: 1, status: 1, isDeleted: 1 });
+
 export const Project = model<IProject>('Project', ProjectSchema);
+export default Project;

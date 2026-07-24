@@ -8,12 +8,15 @@ import {
   TrendingUp,
   AlertCircle,
   Calendar,
+  Euro,
+  Coffee,
 } from 'lucide-react';
 import { api } from '@shared/services/api';
 import { Card } from '@shared/components/Card';
-import { Button } from '@shared/components/Button';
 import { timerStore } from '@/store/timerStore';
 import { toastStore } from '@/store/toastStore';
+import { RunningTaskCard } from '../timer/RunningTaskCard';
+import { GoalCard } from '../timer/GoalCard';
 import {
   ResponsiveContainer,
   AreaChart,
@@ -30,11 +33,13 @@ export const DashboardPage = () => {
   const { startTimer, isRunning } = timerStore();
   const { showToast } = toastStore();
 
-  // Listen to timer stop event to refetch dashboard statistics
+  // Listen to timer stop event to refetch statistics
   useEffect(() => {
     const handleReload = () => {
       queryClient.invalidateQueries({ queryKey: ['dashboardData'] });
       queryClient.invalidateQueries({ queryKey: ['analyticsData'] });
+      queryClient.invalidateQueries({ queryKey: ['sessionIndicators'] });
+      queryClient.invalidateQueries({ queryKey: ['todayDailyGoal'] });
     };
     window.addEventListener('session-logged', handleReload);
     return () => window.removeEventListener('session-logged', handleReload);
@@ -52,11 +57,24 @@ export const DashboardPage = () => {
     queryFn: () => api.get('/analytics/stats'),
   });
 
-  const isLoading = dashLoading || analyticsLoading;
+  // Fetch Productivity/Tenancy Indicators
+  const { data: indicators, isLoading: indicatorsLoading } = useQuery({
+    queryKey: ['sessionIndicators'],
+    queryFn: () => api.get('/work-sessions/indicators'),
+  });
+
+  const isLoading = dashLoading || analyticsLoading || indicatorsLoading;
 
   const formatHours = (seconds: number) => {
     const hrs = Math.floor(seconds / 3600);
     const mins = Math.floor((seconds % 3600) / 60);
+    if (hrs === 0) return `${mins}m`;
+    return `${hrs}h ${mins}m`;
+  };
+
+  const formatDecimalHours = (hours: number) => {
+    const hrs = Math.floor(hours);
+    const mins = Math.round((hours - hrs) * 60);
     if (hrs === 0) return `${mins}m`;
     return `${hrs}h ${mins}m`;
   };
@@ -81,30 +99,27 @@ export const DashboardPage = () => {
     );
   }
 
-  // Fallbacks for loading state (Skeleton loader loaders)
   if (isLoading) {
     return (
       <div className="flex flex-col gap-6 select-none">
-        <div className="h-10 bg-zinc-900 border border-zinc-800 rounded-xl w-48 animate-pulse" />
+        <div className="h-10 bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl w-48 animate-pulse" />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="md:col-span-2 h-44 bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl animate-pulse" />
+          <div className="h-44 bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl animate-pulse" />
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
           {[...Array(4)].map((_, i) => (
-            <div key={i} className="h-32 bg-zinc-900 border border-zinc-800 rounded-2xl animate-pulse" />
+            <div key={i} className="h-32 bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl animate-pulse" />
           ))}
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 h-[350px] bg-zinc-900 border border-zinc-800 rounded-2xl animate-pulse" />
-          <div className="h-[350px] bg-zinc-900 border border-zinc-800 rounded-2xl animate-pulse" />
+          <div className="lg:col-span-2 h-[350px] bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl animate-pulse" />
+          <div className="h-[350px] bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl animate-pulse" />
         </div>
       </div>
     );
   }
 
-  const workedToday = dashboard?.workedTime?.today || 0;
-  const workedWeek = dashboard?.workedTime?.week || 0;
-  const workedMonth = dashboard?.workedTime?.month || 0;
-  const totalHours = dashboard?.workedTime?.total || 0;
-
-  // Chart formatter
   const chartData = analytics?.dailyTrend?.map((item: any) => ({
     name: formatDate(item.date),
     Horas: parseFloat((item.duration / 3600).toFixed(2)),
@@ -115,69 +130,105 @@ export const DashboardPage = () => {
       {/* Welcome Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold text-zinc-100 font-display">Resumen Diario</h2>
-          <p className="text-zinc-500 text-xs mt-0.5">Aquí está tu rendimiento de hoy</p>
+          <h2 className="text-2xl font-bold text-zinc-950 dark:text-zinc-100 font-display">Resumen de Productividad</h2>
+          <p className="text-zinc-500 text-xs mt-0.5">Controla tu tiempo, pausas y valor generado</p>
         </div>
-        <div className="text-xs text-zinc-500 font-medium flex items-center gap-1.5 bg-zinc-900 border border-zinc-800 px-3 py-1.5 rounded-xl">
-          <Calendar className="w-4 h-4 text-brand-purple" />
+        <div className="text-xs text-zinc-500 font-medium flex items-center gap-1.5 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 px-3 py-1.5 rounded-xl shadow-sm">
+          <Calendar className="w-4 h-4 text-violet-500" />
           Hoy es {new Date().toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
+        </div>
+      </div>
+
+      {/* Active Work Session & Goals widget section */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2">
+          {isRunning ? (
+            <RunningTaskCard />
+          ) : (
+            <div className="border border-dashed border-zinc-200 dark:border-zinc-800 p-8 rounded-2xl flex flex-col items-center justify-center text-center text-zinc-500 h-full py-10 bg-zinc-50/50 dark:bg-zinc-900/10">
+              <Clock className="w-8 h-8 text-zinc-400 dark:text-zinc-600 mb-2 animate-pulse" />
+              <p className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">No hay sesiones de trabajo activas</p>
+              <p className="text-[10px] text-zinc-500 mt-0.5">Inicia un cronómetro desde tus tareas para registrar tu jornada laboral.</p>
+            </div>
+          )}
+        </div>
+        <div>
+          <GoalCard 
+            todayEffectiveHours={indicators?.today?.effectiveHours || 0} 
+            todayEarnings={indicators?.today?.amount || 0} 
+          />
         </div>
       </div>
 
       {/* KPI Cards Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-5">
-        <Card hoverable className="relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-brand-purple/5 rounded-full blur-2xl" />
+        <Card hoverable className="relative overflow-hidden bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800">
+          <div className="absolute top-0 right-0 w-24 h-24 bg-violet-500/5 rounded-full blur-2xl" />
           <div className="flex justify-between items-start mb-2">
             <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Hoy Trabajado</span>
-            <Clock className="w-4 h-4 text-brand-purple" />
+            <Clock className="w-4 h-4 text-violet-500" />
           </div>
-          <p className="text-2xl font-bold text-zinc-100">{formatHours(workedToday)}</p>
-          <span className="text-[10px] text-zinc-500 mt-1 block">Meta diaria: 6h</span>
+          <p className="text-2xl font-bold text-zinc-950 dark:text-zinc-100">
+            {formatDecimalHours(indicators?.today?.effectiveHours || 0)}
+          </p>
+          <span className="text-[10px] text-zinc-500 mt-1 block flex items-center gap-1">
+            <Coffee className="w-3 h-3" />
+            {formatDecimalHours(indicators?.today?.breakHours || 0)} en pausa • {indicators?.today?.sessionsCount || 0} sesiones
+          </span>
         </Card>
 
-        <Card hoverable className="relative overflow-hidden">
+        <Card hoverable className="relative overflow-hidden bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800">
           <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 rounded-full blur-2xl" />
           <div className="flex justify-between items-start mb-2">
-            <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Esta Semana</span>
-            <TrendingUp className="w-4 h-4 text-emerald-400" />
+            <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Valor Hoy</span>
+            <Euro className="w-4 h-4 text-emerald-500" />
           </div>
-          <p className="text-2xl font-bold text-zinc-100">{formatHours(workedWeek)}</p>
-          <span className="text-[10px] text-zinc-500 mt-1 block">Total acumulado</span>
+          <p className="text-2xl font-bold text-zinc-950 dark:text-zinc-100">
+            {indicators?.today?.amount?.toFixed(2) || '0.00'} €
+          </p>
+          <span className="text-[10px] text-zinc-500 mt-1 block">Generado hoy</span>
         </Card>
 
-        <Card hoverable className="relative overflow-hidden">
+        <Card hoverable className="relative overflow-hidden bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800">
           <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/5 rounded-full blur-2xl" />
           <div className="flex justify-between items-start mb-2">
-            <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Proyectos Activos</span>
-            <Folder className="w-4 h-4 text-blue-400" />
+            <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Esta Semana</span>
+            <TrendingUp className="w-4 h-4 text-blue-500" />
           </div>
-          <p className="text-2xl font-bold text-zinc-100">{dashboard?.activeProjectsCount || 0}</p>
-          <span className="text-[10px] text-zinc-500 mt-1 block">En ejecución</span>
+          <p className="text-2xl font-bold text-zinc-950 dark:text-zinc-100">
+            {formatDecimalHours(indicators?.week?.totalHours || 0)}
+          </p>
+          <span className="text-[10px] text-zinc-500 mt-1 block">
+            Promedio: {formatDecimalHours(indicators?.week?.dailyAverageHours || 0)}/día
+          </span>
         </Card>
 
-        <Card hoverable className="relative overflow-hidden">
+        <Card hoverable className="relative overflow-hidden bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800">
           <div className="absolute top-0 right-0 w-24 h-24 bg-purple-500/5 rounded-full blur-2xl" />
           <div className="flex justify-between items-start mb-2">
-            <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Tareas Realizadas</span>
-            <CheckCircle className="w-4 h-4 text-purple-400" />
+            <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Rendimiento Mes</span>
+            <CheckCircle className="w-4 h-4 text-purple-500" />
           </div>
-          <p className="text-2xl font-bold text-zinc-100">{dashboard?.completedTasksCount || 0}</p>
-          <span className="text-[10px] text-zinc-500 mt-1 block">Con ejecuciones</span>
+          <p className="text-2xl font-bold text-zinc-950 dark:text-zinc-100">
+            {indicators?.month?.amount?.toFixed(2) || '0.00'} €
+          </p>
+          <span className="text-[10px] text-zinc-500 mt-1 block">
+            Promedio: {indicators?.month?.averageHourlyRate?.toFixed(2) || '0.00'} €/h
+          </span>
         </Card>
       </div>
 
       {/* Charts and Details Section */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Trend Area Chart */}
-        <Card className="lg:col-span-2 flex flex-col justify-between">
+        <Card className="lg:col-span-2 flex flex-col justify-between bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800">
           <div className="flex justify-between items-center mb-6">
             <div>
-              <h3 className="text-sm font-bold text-zinc-200">Tendencia de Trabajo (Horas)</h3>
+              <h3 className="text-sm font-bold text-zinc-800 dark:text-zinc-200">Tendencia de Trabajo (Horas)</h3>
               <p className="text-[10px] text-zinc-500 mt-0.5">Últimos 14 días registrados</p>
             </div>
-            <span className="text-xs bg-zinc-950 border border-zinc-800 px-2 py-1 rounded-lg text-zinc-400 font-semibold font-mono">
-              Total: {parseFloat((totalHours / 3600).toFixed(1))}h
+            <span className="text-xs bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 px-2 py-1 rounded-lg text-zinc-600 dark:text-zinc-400 font-semibold font-mono">
+              Total: {formatDecimalHours(indicators?.month?.totalHours || 0)} este mes
             </span>
           </div>
           <div className="h-[250px] w-full mt-4">
@@ -207,9 +258,9 @@ export const DashboardPage = () => {
         </Card>
 
         {/* Category Breakdown list */}
-        <Card className="flex flex-col justify-between">
+        <Card className="flex flex-col justify-between bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800">
           <div>
-            <h3 className="text-sm font-bold text-zinc-200 mb-1">Distribución por Categorías</h3>
+            <h3 className="text-sm font-bold text-zinc-800 dark:text-zinc-200 mb-1">Distribución por Categorías</h3>
             <p className="text-[10px] text-zinc-500 mb-6">Porcentaje de tiempo dedicado</p>
           </div>
           <div className="flex-grow flex flex-col gap-4 overflow-y-auto max-h-[220px] pr-1">
@@ -218,21 +269,21 @@ export const DashboardPage = () => {
               const percentage = totalDuration > 0 ? Math.round((cat.duration / totalDuration) * 100) : 0;
               return (
                 <div key={i} className="flex flex-col gap-1.5">
-                  <div className="flex justify-between items-center text-xs font-semibold text-zinc-300">
+                  <div className="flex justify-between items-center text-xs font-semibold text-zinc-700 dark:text-zinc-300">
                     <span className="flex items-center gap-1.5 truncate">
                       <span className="w-2 h-2 rounded-full" style={{ backgroundColor: cat.color }} />
                       {cat.category}
                     </span>
                     <span>{percentage}%</span>
                   </div>
-                  <div className="h-2 w-full bg-zinc-950 border border-zinc-900 rounded-full overflow-hidden p-0.5">
+                  <div className="h-2 w-full bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-full overflow-hidden p-0.5">
                     <div className="h-full rounded-full" style={{ backgroundColor: cat.color, width: `${percentage}%` }} />
                   </div>
                 </div>
               );
             })}
             {(!dashboard?.categoryBreakdown || dashboard.categoryBreakdown.length === 0 || dashboard.categoryBreakdown[0]?.duration === 0) && (
-              <div className="flex items-center justify-center py-10 text-xs text-zinc-600">
+              <div className="flex items-center justify-center py-10 text-xs text-zinc-500">
                 Registra tu primera tarea para ver estadísticas
               </div>
             )}
@@ -243,10 +294,10 @@ export const DashboardPage = () => {
       {/* Recent Sessions & Fast Launch task */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Recent sessions list */}
-        <Card className="lg:col-span-2 flex flex-col justify-between">
+        <Card className="lg:col-span-2 flex flex-col justify-between bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800">
           <div className="flex justify-between items-center mb-6">
             <div>
-              <h3 className="text-sm font-bold text-zinc-200">Últimas Actividades</h3>
+              <h3 className="text-sm font-bold text-zinc-800 dark:text-zinc-200">Últimas Actividades</h3>
               <p className="text-[10px] text-zinc-500 mt-0.5">Tus sesiones de tiempo más recientes</p>
             </div>
             <Link to="/history" className="text-xs font-semibold text-brand-purple hover:underline cursor-pointer">
@@ -257,7 +308,7 @@ export const DashboardPage = () => {
             {dashboard?.recentSessions?.map((session: any) => (
               <div
                 key={session._id}
-                className="flex items-center justify-between p-3 rounded-xl bg-zinc-950/40 border border-zinc-900/60 hover:border-zinc-800/80 transition-all text-xs"
+                className="flex items-center justify-between p-3 rounded-xl bg-zinc-50/50 dark:bg-zinc-900/40 border border-zinc-200/60 dark:border-zinc-900/60 hover:border-zinc-300 dark:hover:border-zinc-800/80 transition-all text-xs"
               >
                 <div className="flex items-center gap-3 truncate">
                   <div
@@ -265,7 +316,7 @@ export const DashboardPage = () => {
                     style={{ backgroundColor: session.taskId?.color || '#7C3AED' }}
                   />
                   <div className="flex flex-col truncate">
-                    <span className="font-semibold text-zinc-200 truncate">
+                    <span className="font-semibold text-zinc-800 dark:text-zinc-200 truncate">
                       {session.taskId?.name || 'Tarea Eliminada'}
                     </span>
                     <span className="text-[9px] text-zinc-500 truncate mt-0.5">
@@ -275,7 +326,7 @@ export const DashboardPage = () => {
                 </div>
                 <div className="flex items-center gap-6">
                   <div className="text-right flex flex-col">
-                    <span className="font-semibold text-zinc-300">
+                    <span className="font-semibold text-zinc-700 dark:text-zinc-300 font-mono">
                       {formatHours(session.duration)}
                     </span>
                     <span className="text-[9px] text-zinc-500 mt-0.5">
@@ -286,7 +337,7 @@ export const DashboardPage = () => {
               </div>
             ))}
             {(!dashboard?.recentSessions || dashboard.recentSessions.length === 0) && (
-              <div className="py-12 text-center text-xs text-zinc-600">
+              <div className="py-12 text-center text-xs text-zinc-500">
                 Aún no has registrado ninguna sesión de tiempo.
               </div>
             )}
@@ -294,9 +345,9 @@ export const DashboardPage = () => {
         </Card>
 
         {/* Quick Launch widget */}
-        <Card className="flex flex-col justify-between">
+        <Card className="flex flex-col justify-between bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800">
           <div>
-            <h3 className="text-sm font-bold text-zinc-200 mb-1">Inicio Rápido</h3>
+            <h3 className="text-sm font-bold text-zinc-800 dark:text-zinc-200 mb-1">Inicio Rápido</h3>
             <p className="text-[10px] text-zinc-500 mb-6">Inicia un cronómetro inmediatamente</p>
           </div>
           <div className="flex flex-col gap-2 overflow-y-auto max-h-[220px] pr-1">
@@ -311,7 +362,7 @@ export const DashboardPage = () => {
                   startTimer(session.taskId?._id, session.projectId?._id, session.taskId?.name, session.taskId?.color);
                   showToast(`Temporizador iniciado para: ${session.taskId?.name}`);
                 }}
-                className="flex items-center justify-between p-3 rounded-xl bg-zinc-950 hover:bg-zinc-900 border border-zinc-900/60 hover:border-zinc-800 transition-all text-xs font-semibold text-zinc-300 w-full text-left group cursor-pointer"
+                className="flex items-center justify-between p-3 rounded-xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800/60 hover:border-zinc-300 dark:hover:border-zinc-700 transition-all text-xs font-semibold text-zinc-700 dark:text-zinc-300 w-full text-left group cursor-pointer"
               >
                 <span className="truncate flex items-center gap-2">
                   <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: session.taskId?.color }} />
@@ -321,7 +372,7 @@ export const DashboardPage = () => {
               </button>
             ))}
             {(!dashboard?.recentSessions || dashboard.recentSessions.length === 0) && (
-              <div className="py-12 text-center text-xs text-zinc-600">
+              <div className="py-12 text-center text-xs text-zinc-500">
                 Crea tareas en el gestor para iniciar rápido.
               </div>
             )}

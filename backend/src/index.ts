@@ -17,6 +17,12 @@ import sessionRoutes from '@modules/timer/timer.routes';
 import settingsRoutes from '@modules/settings/settings.routes';
 import billingRoutes from '@modules/billing/billing.routes';
 import analyticsRoutes from '@modules/analytics/analytics.routes';
+import organizationRoutes from '@modules/organizations/organization.routes';
+import clientRoutes from '@modules/clients/client.routes';
+import rateRoutes from '@modules/rates/rate.routes';
+import workSessionRoutes from '@modules/workSessions/work-session.routes';
+import dashboardRoutes from '@modules/dashboard/dashboard.routes';
+import focusRoutes from '@modules/focus/focus.routes';
 
 const app = express();
 const PORT = env.PORT;
@@ -105,6 +111,12 @@ app.use('/api/v1/sessions', sessionRoutes);
 app.use('/api/v1/settings', settingsRoutes);
 app.use('/api/v1/billing', billingRoutes);
 app.use('/api/v1/analytics', analyticsRoutes);
+app.use('/api/v1/organizations', organizationRoutes);
+app.use('/api/v1/clients', clientRoutes);
+app.use('/api/v1/rates', rateRoutes);
+app.use('/api/v1/work-sessions', workSessionRoutes);
+app.use('/api/v1/dashboard', dashboardRoutes);
+app.use('/api/v1/focus', focusRoutes);
 
 // Global Error Handler Middleware
 app.use(errorHandler);

@@ -1,310 +1,186 @@
-import { Response } from 'express';
+import { Response, NextFunction } from 'express';
 import { AuthenticatedRequest } from '@core/middleware/auth.middleware';
-import { Project } from '@modules/projects/project.model';
-import { ProjectTask } from '@modules/tasks/project-task.model';
-import { Task } from '@modules/tasks/task.model';
-import { TimeSession } from '@modules/timer/time-session.model';
+import { ProjectService } from './project.service';
+import { createProjectSchema, updateProjectSchema } from './project.schema';
+import { ValidationError, AuthorizationError } from '@core/errors/classes';
 
-/**
- * Recalculates estimated, accumulated and remaining durations for a project
- */
-export const recalculateProjectEstimates = async (projectId: string): Promise<void> => {
-  try {
-    const project = await Project.findById(projectId);
-    if (!project) return;
+export class ProjectController {
+  private service: ProjectService;
 
-    // Get all project tasks
-    const projectTasks = await ProjectTask.find({ projectId });
-    const taskIds = projectTasks.map((pt) => pt.taskId);
-
-    // Get tasks to fetch average durations
-    const tasks = await Task.find({ _id: { $in: taskIds } });
-    const taskAvgMap = new Map<string, number>();
-    tasks.forEach((t) => {
-      taskAvgMap.set(t._id.toString(), t.averageDuration);
-    });
-
-    // 1. Estimated Duration = Sum of average durations of all tasks in project
-    let estimatedDuration = 0;
-    projectTasks.forEach((pt) => {
-      const avg = taskAvgMap.get(pt.taskId.toString()) || 0;
-      estimatedDuration += avg;
-    });
-
-    // 2. Accumulated Duration = Sum of all time sessions logged to this project
-    const sessions = await TimeSession.find({ projectId });
-    const accumulatedDuration = sessions.reduce((sum, s) => sum + s.duration, 0);
-
-    // 3. Remaining Duration = Math.max(0, Estimated - Accumulated)
-    const remainingDuration = Math.max(0, estimatedDuration - accumulatedDuration);
-
-    // 4. Completion Percentage
-    // (If tasks are marked completed, we can also use that, but time-based is extremely accurate for our SaaS core)
-    const completedTasksCount = projectTasks.filter((pt) => pt.status === 'completed').length;
-    const totalTasksCount = projectTasks.length;
-    const completionPercentage = totalTasksCount > 0 
-      ? Math.round((completedTasksCount / totalTasksCount) * 100)
-      : 0;
-
-    project.estimatedDuration = estimatedDuration;
-    project.accumulatedDuration = accumulatedDuration;
-    project.remainingDuration = remainingDuration;
-    project.completionPercentage = Math.min(100, completionPercentage);
-
-    await project.save();
-  } catch (error) {
-    console.error(`Error recalculating project estimates for ${projectId}:`, error);
+  constructor() {
+    this.service = new ProjectService();
   }
-};
 
-export const getProjects = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-  try {
-    const userId = req.user?.userId;
-    const { status } = req.query;
-
-    const query: any = { userId };
-    if (status) query.status = status;
-
-    const projects = await Project.find(query).sort({ updatedAt: -1 });
-    res.status(200).json(projects);
-  } catch (error) {
-    console.error('Error getting projects:', error);
-    res.status(500).json({ error: 'Error al obtener proyectos.' });
+  private getOrgId(req: AuthenticatedRequest): string {
+    const orgId = req.user?.organizationId;
+    if (!orgId) {
+      throw new AuthorizationError('Su cuenta no está vinculada a ninguna organización. Por favor, únase o cree una organización primero.');
+    }
+    return orgId;
   }
-};
 
-export const getProjectById = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-  try {
-    const { id } = req.params;
-    const userId = req.user?.userId;
-
-    const project = await Project.findOne({ _id: id, userId });
-    if (!project) {
-      res.status(404).json({ error: 'Proyecto no encontrado.' });
-      return;
+  public getProjects = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const orgId = this.getOrgId(req);
+      const { status } = req.query;
+      const projects = await this.service.getProjects(orgId, status as string);
+      res.status(200).json(projects);
+    } catch (error) {
+      next(error);
     }
+  };
 
-    // Get sorted list of tasks associated with this project
-    const projectTasks = await ProjectTask.find({ projectId: id })
-      .sort({ order: 1 })
-      .populate('taskId');
-
-    res.status(200).json({
-      project,
-      tasks: projectTasks,
-    });
-  } catch (error) {
-    console.error('Error getting project details:', error);
-    res.status(500).json({ error: 'Error al obtener detalles del proyecto.' });
-  }
-};
-
-export const createProject = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-  try {
-    const userId = req.user?.userId;
-    const { name, description, color, priority, client, startDate, endDate, notes } = req.body;
-
-    if (!name) {
-      res.status(400).json({ error: 'El nombre del proyecto es obligatorio.' });
-      return;
+  public getProjectById = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const id = req.params.id as string;
+      const orgId = this.getOrgId(req);
+      const result = await this.service.getProjectById(id, orgId);
+      res.status(200).json(result);
+    } catch (error) {
+      next(error);
     }
+  };
 
-    const project = new Project({
-      userId,
-      name,
-      description,
-      color,
-      priority,
-      client,
-      startDate,
-      endDate,
-      notes,
-    });
+  public create = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const orgId = this.getOrgId(req);
+      const userId = req.user?.userId;
+      if (!userId) {
+        throw new AuthorizationError('Usuario no autenticado.');
+      }
 
-    await project.save();
-    res.status(201).json(project);
-  } catch (error) {
-    console.error('Error creating project:', error);
-    res.status(500).json({ error: 'Error al crear el proyecto.' });
-  }
-};
+      const result = createProjectSchema.safeParse(req.body);
+      if (!result.success) {
+        throw new ValidationError(result.error.issues[0].message);
+      }
 
-export const updateProject = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-  try {
-    const { id } = req.params;
-    const userId = req.user?.userId;
-    const updates = req.body;
-
-    const project = await Project.findOneAndUpdate(
-      { _id: id, userId },
-      { $set: updates },
-      { new: true }
-    );
-
-    if (!project) {
-      res.status(404).json({ error: 'Proyecto no encontrado.' });
-      return;
-    }
-
-    await recalculateProjectEstimates(id as string);
-    const updatedProject = await Project.findById(id);
-
-    res.status(200).json(updatedProject);
-  } catch (error) {
-    console.error('Error updating project:', error);
-    res.status(500).json({ error: 'Error al actualizar el proyecto.' });
-  }
-};
-
-export const deleteProject = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-  try {
-    const { id } = req.params;
-    const userId = req.user?.userId;
-
-    const project = await Project.findOne({ _id: id, userId });
-    if (!project) {
-      res.status(404).json({ error: 'Proyecto no encontrado.' });
-      return;
-    }
-
-    await Project.deleteOne({ _id: id });
-    // Also remove the task relations
-    await ProjectTask.deleteMany({ projectId: id });
-
-    res.status(200).json({ message: 'Proyecto eliminado con éxito.' });
-  } catch (error) {
-    console.error('Error deleting project:', error);
-    res.status(500).json({ error: 'Error al eliminar el proyecto.' });
-  }
-};
-
-export const addTaskToProject = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-  try {
-    const { id } = req.params;
-    const { taskId, quantity = 1 } = req.body;
-    const userId = req.user?.userId;
-
-    // Verify ownership
-    const project = await Project.findOne({ _id: id, userId });
-    if (!project) {
-      res.status(404).json({ error: 'Proyecto no encontrado.' });
-      return;
-    }
-
-    const task = await Task.findOne({ _id: taskId, userId });
-    if (!task) {
-      res.status(404).json({ error: 'Tarea no encontrada.' });
-      return;
-    }
-
-    // Determine order (append to the end)
-    const lastTask = await ProjectTask.findOne({ projectId: id }).sort({ order: -1 });
-    let startOrder = lastTask ? lastTask.order + 1 : 0;
-
-    const qty = Math.max(1, parseInt(quantity) || 1);
-    const projectTasks = [];
-
-    for (let i = 0; i < qty; i++) {
-      projectTasks.push({
-        projectId: id,
-        taskId,
-        order: startOrder + i,
-        status: 'pending',
+      const project = await this.service.createProject(result.data, orgId, userId);
+      res.status(201).json({
+        message: 'Proyecto creado correctamente.',
+        project,
       });
+    } catch (error) {
+      next(error);
     }
+  };
 
-    const createdTasks = await ProjectTask.insertMany(projectTasks);
-    await recalculateProjectEstimates(id as string);
+  public update = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const id = req.params.id as string;
+      const orgId = this.getOrgId(req);
+      const userId = req.user?.userId;
+      if (!userId) {
+        throw new AuthorizationError('Usuario no autenticado.');
+      }
 
-    res.status(201).json(createdTasks);
-  } catch (error) {
-    console.error('Error adding task to project:', error);
-    res.status(500).json({ error: 'Error al agregar la tarea al proyecto.' });
-  }
-};
+      const result = updateProjectSchema.safeParse(req.body);
+      if (!result.success) {
+        throw new ValidationError(result.error.issues[0].message);
+      }
 
-export const removeTaskFromProject = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-  try {
-    const { id, projectTaskId } = req.params;
-    const userId = req.user?.userId;
-
-    const project = await Project.findOne({ _id: id, userId });
-    if (!project) {
-      res.status(404).json({ error: 'Proyecto no encontrado.' });
-      return;
+      const project = await this.service.updateProject(id, orgId, result.data, userId);
+      res.status(200).json({
+        message: 'Proyecto actualizado correctamente.',
+        project,
+      });
+    } catch (error) {
+      next(error);
     }
+  };
 
-    await ProjectTask.deleteOne({ projectId: id, _id: projectTaskId });
-    await recalculateProjectEstimates(id as string);
+  public delete = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const id = req.params.id as string;
+      const orgId = this.getOrgId(req);
+      const userId = req.user?.userId;
+      if (!userId) {
+        throw new AuthorizationError('Usuario no autenticado.');
+      }
 
-    res.status(200).json({ message: 'Tarea removida del proyecto correctamente.' });
-  } catch (error) {
-    console.error('Error removing task from project:', error);
-    res.status(500).json({ error: 'Error al remover la tarea del proyecto.' });
-  }
-};
-
-export const reorderProjectTasks = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-  try {
-    const { id } = req.params;
-    const { taskOrders } = req.body; // Array of { projectTaskId: string, order: number }
-    const userId = req.user?.userId;
-
-    const project = await Project.findOne({ _id: id, userId });
-    if (!project) {
-      res.status(404).json({ error: 'Proyecto no encontrado.' });
-      return;
+      await this.service.deleteProject(id, orgId, userId);
+      res.status(200).json({
+        message: 'Proyecto eliminado correctamente.',
+      });
+    } catch (error) {
+      next(error);
     }
+  };
 
-    if (!Array.isArray(taskOrders)) {
-      res.status(400).json({ error: 'Formato inválido. Se espera un arreglo taskOrders.' });
-      return;
+  public addTask = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const id = req.params.id as string;
+      const orgId = this.getOrgId(req);
+      const userId = req.user?.userId;
+      const { taskId, quantity } = req.body;
+
+      if (!userId) {
+        throw new AuthorizationError('Usuario no autenticado.');
+      }
+
+      if (!taskId) {
+        throw new ValidationError('El ID de la tarea es obligatorio.');
+      }
+
+      const createdTasks = await this.service.addTaskToProject(id, orgId, taskId, quantity, userId);
+      res.status(201).json(createdTasks);
+    } catch (error) {
+      next(error);
     }
+  };
 
-    // Update orders sequentially using projectTaskId (_id)
-    await Promise.all(
-      taskOrders.map((to) =>
-        ProjectTask.updateOne(
-          { projectId: id, _id: to.projectTaskId },
-          { $set: { order: to.order } }
-        )
-      )
-    );
+  public removeTask = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const id = req.params.id as string;
+      const projectTaskId = req.params.projectTaskId as string;
+      const orgId = this.getOrgId(req);
+      const userId = req.user?.userId;
 
-    res.status(200).json({ message: 'Orden de tareas actualizado correctamente.' });
-  } catch (error) {
-    console.error('Error reordering project tasks:', error);
-    res.status(500).json({ error: 'Error al reordenar las tareas.' });
-  }
-};
+      if (!userId) {
+        throw new AuthorizationError('Usuario no autenticado.');
+      }
 
-export const toggleProjectTaskStatus = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-  try {
-    const { id, projectTaskId } = req.params;
-    const { status, actualDuration } = req.body; // status: 'pending' or 'completed'
-    const userId = req.user?.userId;
-
-    const project = await Project.findOne({ _id: id, userId });
-    if (!project) {
-      res.status(404).json({ error: 'Proyecto no encontrado.' });
-      return;
+      await this.service.removeTaskFromProject(id, orgId, projectTaskId);
+      res.status(200).json({ message: 'Tarea removida del proyecto correctamente.' });
+    } catch (error) {
+      next(error);
     }
+  };
 
-    const projectTask = await ProjectTask.findOne({ projectId: id, _id: projectTaskId });
-    if (!projectTask) {
-      res.status(404).json({ error: 'Relación tarea-proyecto no encontrada.' });
-      return;
+  public reorderTasks = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const id = req.params.id as string;
+      const orgId = this.getOrgId(req);
+      const { taskOrders } = req.body;
+
+      if (!Array.isArray(taskOrders)) {
+        throw new ValidationError('Formato inválido. Se espera un arreglo taskOrders.');
+      }
+
+      await this.service.reorderProjectTasks(id, orgId, taskOrders);
+      res.status(200).json({ message: 'Orden de tareas actualizado correctamente.' });
+    } catch (error) {
+      next(error);
     }
+  };
 
-    if (status !== undefined) projectTask.status = status;
-    if (actualDuration !== undefined) projectTask.actualDuration = actualDuration;
+  public toggleTaskStatus = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const id = req.params.id as string;
+      const projectTaskId = req.params.projectTaskId as string;
+      const orgId = this.getOrgId(req);
+      const { status, actualDuration } = req.body;
 
-    await projectTask.save();
-    await recalculateProjectEstimates(id as string);
-
-    res.status(200).json(projectTask);
-  } catch (error) {
-    console.error('Error updating task status inside project:', error);
-    res.status(500).json({ error: 'Error al actualizar el estado de la tarea en el proyecto.' });
-  }
-};
+      const projectTask = await this.service.toggleProjectTaskStatus(
+        id,
+        orgId,
+        projectTaskId,
+        status,
+        actualDuration
+      );
+      res.status(200).json(projectTask);
+    } catch (error) {
+      next(error);
+    }
+  };
+}
+export default ProjectController;

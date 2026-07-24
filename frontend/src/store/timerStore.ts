@@ -1,14 +1,16 @@
 import { create } from 'zustand';
+import { api } from '@shared/services/api';
 
 export interface BreakSegment {
   startTime: string;
-  endTime: string;
-  duration: number; // in seconds
+  endTime?: string;
+  duration: number; // In seconds
   type: 'break' | 'dead_time';
-  notes: string;
+  notes?: string;
 }
 
 interface TimerState {
+  activeSessionId: string | null;
   activeTaskId: string | null;
   activeProjectId: string | null;
   activeProjectTaskId: string | null;
@@ -32,21 +34,23 @@ interface TimerState {
     projectId: string | null,
     taskName: string,
     taskColor: string,
+    categoryId?: string | null,
     projectTaskId?: string | null
-  ) => void;
-  pauseTimer: () => void;
-  resumeTimer: () => void;
-  stopTimer: () => { duration: number; startTime: string; endTime: string; breaks: BreakSegment[] } | null;
-  cancelTimer: () => void;
+  ) => Promise<void>;
+  pauseTimer: () => Promise<void>;
+  resumeTimer: () => Promise<void>;
+  stopTimer: () => Promise<{ duration: number; startTime: string; endTime: string } | null>;
+  cancelTimer: () => Promise<void>;
   tick: () => void;
   setNotes: (notes: string) => void;
-  syncFromLocalStorage: () => void;
+  syncFromBackend: () => Promise<void>;
   setCompact: (compact: boolean) => void;
   setAutoStart: (nextTask: { taskId: string; projectId: string; taskName: string; taskColor: string; projectTaskId: string } | null, seconds?: number) => void;
   decrementAutoStart: () => void;
 }
 
 export const timerStore = create<TimerState>((set, get) => ({
+  activeSessionId: null,
   activeTaskId: null,
   activeProjectId: null,
   activeProjectTaskId: null,
@@ -64,161 +68,162 @@ export const timerStore = create<TimerState>((set, get) => ({
   nextTaskToAutoStart: null,
   autoStartCountdown: 0,
 
-  startTimer: (taskId, projectId, taskName, taskColor, projectTaskId = null) => {
-    const startTimeIso = new Date().toISOString();
-    const newState = {
-      activeTaskId: taskId,
-      activeProjectId: projectId,
-      activeProjectTaskId: projectTaskId,
-      activeTaskName: taskName,
-      activeTaskColor: taskColor || '#7C3AED',
-      isRunning: true,
-      isPaused: false,
-      seconds: 0,
-      startTime: startTimeIso,
-      pausedTime: null,
-      breaks: [],
-      currentBreakStartTime: null,
-      notes: '',
-    };
-    
-    // Save to local storage for recovery
-    localStorage.setItem('tf_active_timer', JSON.stringify(newState));
-    set(newState);
+  startTimer: async (taskId, projectId, taskName, taskColor, categoryId = null, projectTaskId = null) => {
+    try {
+      // Find category: if no categoryId is supplied, default or look up task info
+      const resolvedCategory = categoryId || 'general';
+
+      const session: any = await api.post('/work-sessions/start', {
+        task: taskId,
+        project: projectId || undefined,
+        category: resolvedCategory,
+        complexity: 'MEDIUM',
+        device: 'Web App',
+      });
+
+      const newState = {
+        activeSessionId: session._id,
+        activeTaskId: taskId,
+        activeProjectId: projectId,
+        activeProjectTaskId: projectTaskId,
+        activeTaskName: taskName,
+        activeTaskColor: taskColor || '#7C3AED',
+        isRunning: true,
+        isPaused: false,
+        seconds: 0,
+        startTime: session.startTime,
+        pausedTime: null,
+        breaks: [],
+        currentBreakStartTime: null,
+        notes: '',
+      };
+      
+      set(newState);
+    } catch (e) {
+      console.error('Failed to start session on backend:', e);
+      throw e;
+    }
   },
 
-  pauseTimer: () => {
-    const state = get();
-    if (!state.isRunning || state.isPaused) return;
+  pauseTimer: async () => {
+    const { activeSessionId } = get();
+    if (!activeSessionId) return;
 
-    const pausedTimeIso = new Date().toISOString();
-    const breakStartIso = pausedTimeIso;
-
-    set({
-      isPaused: true,
-      pausedTime: pausedTimeIso,
-      currentBreakStartTime: breakStartIso,
-    });
-
-    // Update localStorage
-    const saved = JSON.parse(localStorage.getItem('tf_active_timer') || '{}');
-    localStorage.setItem(
-      'tf_active_timer',
-      JSON.stringify({
-        ...saved,
+    try {
+      const session: any = await api.post(`/work-sessions/${activeSessionId}/pause`);
+      
+      // Locate the latest active break
+      const latestBreak = session.breaks[session.breaks.length - 1];
+      
+      set({
         isPaused: true,
-        pausedTime: pausedTimeIso,
-        currentBreakStartTime: breakStartIso,
-      })
-    );
+        pausedTime: latestBreak ? latestBreak.startTime : new Date().toISOString(),
+        currentBreakStartTime: latestBreak ? latestBreak.startTime : new Date().toISOString(),
+        breaks: session.breaks || [],
+      });
+    } catch (e) {
+      console.error('Failed to pause session on backend:', e);
+    }
   },
 
-  resumeTimer: () => {
-    const state = get();
-    if (!state.isRunning || !state.isPaused || !state.currentBreakStartTime) return;
+  resumeTimer: async () => {
+    const { activeSessionId } = get();
+    if (!activeSessionId) return;
 
-    const now = new Date();
-    const breakStart = new Date(state.currentBreakStartTime);
-    const breakDuration = Math.max(0, Math.floor((now.getTime() - breakStart.getTime()) / 1000));
-
-    const newBreak: BreakSegment = {
-      startTime: state.currentBreakStartTime,
-      endTime: now.toISOString(),
-      duration: breakDuration,
-      type: 'break',
-      notes: 'Pausa del temporizador',
-    };
-
-    const updatedBreaks = [...state.breaks, newBreak];
-
-    set({
-      isPaused: false,
-      pausedTime: null,
-      currentBreakStartTime: null,
-      breaks: updatedBreaks,
-    });
-
-    // Update localStorage
-    const saved = JSON.parse(localStorage.getItem('tf_active_timer') || '{}');
-    localStorage.setItem(
-      'tf_active_timer',
-      JSON.stringify({
-        ...saved,
+    try {
+      const session: any = await api.post(`/work-sessions/${activeSessionId}/resume`);
+      
+      set({
         isPaused: false,
         pausedTime: null,
         currentBreakStartTime: null,
-        breaks: updatedBreaks,
-      })
-    );
+        breaks: session.breaks || [],
+      });
+      get().tick();
+    } catch (e) {
+      console.error('Failed to resume session on backend:', e);
+    }
   },
 
   tick: () => {
     const state = get();
-    if (!state.isRunning || state.isPaused || !state.startTime) return;
+    if (!state.isRunning || !state.startTime) return;
 
     const now = new Date().getTime();
     const start = new Date(state.startTime).getTime();
 
-    // Sum up completed breaks duration
-    const breaksDuration = state.breaks.reduce((sum, b) => sum + b.duration, 0);
+    // Compute duration of completed break segments
+    const completedBreaksDuration = state.breaks
+      .filter((b) => b.endTime)
+      .reduce((sum, b) => sum + b.duration, 0);
 
-    const elapsedSeconds = Math.max(0, Math.floor((now - start) / 1000) - breaksDuration);
+    // If currently paused, compute the ongoing active break duration as well
+    let activeBreakDuration = 0;
+    if (state.isPaused && state.currentBreakStartTime) {
+      const breakStart = new Date(state.currentBreakStartTime).getTime();
+      activeBreakDuration = Math.max(0, Math.floor((now - breakStart) / 1000));
+    }
+
+    const totalBreaks = completedBreaksDuration + activeBreakDuration;
+    const elapsedSeconds = Math.max(0, Math.floor((now - start) / 1000) - totalBreaks);
 
     set({ seconds: elapsedSeconds });
   },
 
-  stopTimer: () => {
+  stopTimer: async () => {
     const state = get();
-    if (!state.isRunning || !state.startTime) return null;
+    if (!state.activeSessionId) return null;
 
-    let finalBreaks = [...state.breaks];
-    
-    // If stopped while paused, finalize the active break segment
-    if (state.isPaused && state.currentBreakStartTime) {
-      const now = new Date();
-      const breakStart = new Date(state.currentBreakStartTime);
-      const breakDuration = Math.max(0, Math.floor((now.getTime() - breakStart.getTime()) / 1000));
-      
-      finalBreaks.push({
-        startTime: state.currentBreakStartTime,
-        endTime: now.toISOString(),
-        duration: breakDuration,
-        type: 'break',
-        notes: 'Pausa finalizada al detener',
+    try {
+      const session: any = await api.post(`/work-sessions/${state.activeSessionId}/finish`, {
+        notes: state.notes || undefined,
       });
+
+      const result = {
+        duration: session.duration || state.seconds,
+        startTime: session.startTime,
+        endTime: session.endTime || new Date().toISOString(),
+      };
+
+      // Clear local state
+      set({
+        activeSessionId: null,
+        activeTaskId: null,
+        activeProjectId: null,
+        activeProjectTaskId: null,
+        activeTaskName: null,
+        isRunning: false,
+        isPaused: false,
+        seconds: 0,
+        startTime: null,
+        pausedTime: null,
+        breaks: [],
+        currentBreakStartTime: null,
+        notes: '',
+      });
+
+      // Dispatch event to trigger dashboard component refetching
+      window.dispatchEvent(new CustomEvent('session-logged'));
+
+      return result;
+    } catch (e) {
+      console.error('Failed to stop session on backend:', e);
+      throw e;
     }
-
-    const endTimeIso = new Date().toISOString();
-    const result = {
-      duration: state.seconds,
-      startTime: state.startTime,
-      endTime: endTimeIso,
-      breaks: finalBreaks,
-    };
-
-    // Clear state
-    localStorage.removeItem('tf_active_timer');
-    set({
-      activeTaskId: null,
-      activeProjectId: null,
-      activeProjectTaskId: null,
-      activeTaskName: null,
-      isRunning: false,
-      isPaused: false,
-      seconds: 0,
-      startTime: null,
-      pausedTime: null,
-      breaks: [],
-      currentBreakStartTime: null,
-      notes: '',
-    });
-
-    return result;
   },
 
-  cancelTimer: () => {
-    localStorage.removeItem('tf_active_timer');
+  cancelTimer: async () => {
+    const { activeSessionId } = get();
+    if (activeSessionId) {
+      try {
+        await api.post(`/work-sessions/${activeSessionId}/cancel`);
+      } catch (e) {
+        console.error('Failed to cancel session on backend:', e);
+      }
+    }
+
     set({
+      activeSessionId: null,
       activeTaskId: null,
       activeProjectId: null,
       activeProjectTaskId: null,
@@ -236,40 +241,56 @@ export const timerStore = create<TimerState>((set, get) => ({
 
   setNotes: (notes) => {
     set({ notes });
-    const saved = JSON.parse(localStorage.getItem('tf_active_timer') || '{}');
-    localStorage.setItem('tf_active_timer', JSON.stringify({ ...saved, notes }));
   },
 
-  syncFromLocalStorage: () => {
-    const raw = localStorage.getItem('tf_active_timer');
-    if (!raw) return;
-
+  syncFromBackend: async () => {
     try {
-      const parsed = JSON.parse(raw);
-      if (parsed.isRunning && parsed.startTime) {
+      const active: any = await api.get('/work-sessions/active');
+      
+      if (active) {
+        const activeBreak = (active.breaks || []).find((b: any) => !b.endTime);
+
         set({
-          activeTaskId: parsed.activeTaskId,
-          activeProjectId: parsed.activeProjectId,
-          activeProjectTaskId: parsed.activeProjectTaskId,
-          activeTaskName: parsed.activeTaskName,
-          activeTaskColor: parsed.activeTaskColor || '#7C3AED',
-          isRunning: parsed.isRunning,
-          isPaused: parsed.isPaused,
-          startTime: parsed.startTime,
-          pausedTime: parsed.pausedTime,
-          breaks: parsed.breaks || [],
-          currentBreakStartTime: parsed.currentBreakStartTime,
-          notes: parsed.notes || '',
+          activeSessionId: active._id,
+          activeTaskId: active.task?._id || active.task,
+          activeProjectId: active.project?._id || active.project,
+          activeTaskName: active.task?.title || 'Sesión de trabajo',
+          activeTaskColor: active.project?.color || '#7C3AED',
+          isRunning: true,
+          isPaused: active.status === 'PAUSED',
+          startTime: active.startTime,
+          pausedTime: activeBreak ? activeBreak.startTime : null,
+          currentBreakStartTime: activeBreak ? activeBreak.startTime : null,
+          breaks: active.breaks || [],
+          notes: active.notes || '',
         });
-        
-        // Run initial tick to catch up elapsed time
+
+        // Trigger immediate tick calculation to catch up timer UI seconds
         get().tick();
+      } else {
+        // No active timer session, reset state
+        set({
+          activeSessionId: null,
+          activeTaskId: null,
+          activeProjectId: null,
+          activeProjectTaskId: null,
+          activeTaskName: null,
+          isRunning: false,
+          isPaused: false,
+          seconds: 0,
+          startTime: null,
+          pausedTime: null,
+          breaks: [],
+          currentBreakStartTime: null,
+          notes: '',
+        });
       }
     } catch (e) {
-      console.error('Failed to sync timer from localStorage:', e);
+      console.error('Failed to sync timer from backend active state:', e);
     }
   },
-  setCompact: (compact) => set({ isCompact: compact }),
+
+  setCompact: (isCompact) => set({ isCompact }),
   setAutoStart: (nextTask, seconds = 5) => set({ nextTaskToAutoStart: nextTask, autoStartCountdown: seconds }),
   decrementAutoStart: () => set((state) => ({ autoStartCountdown: Math.max(0, state.autoStartCountdown - 1) })),
 }));

@@ -1,25 +1,18 @@
 import { Router } from 'express';
+import { TaskController } from './task.controller';
 import { authenticateToken } from '@core/middleware/auth.middleware';
 import { checkTaskLimit } from '@core/middleware/quota.middleware';
-import {
-  getTasks,
-  getTaskById,
-  createTask,
-  updateTask,
-  toggleFavorite,
-  deleteTask,
-} from './task.controller';
 
 const router = Router();
+const controller = new TaskController();
 
-// Secure all task endpoints
-router.use(authenticateToken as any);
+// Require authentication for all task routes
+router.use(authenticateToken);
 
-router.get('/', getTasks as any);
-router.get('/:id', getTaskById as any);
-router.post('/', checkTaskLimit as any, createTask as any);
-router.put('/:id', updateTask as any);
-router.patch('/:id/favorite', toggleFavorite as any);
-router.delete('/:id', deleteTask as any);
+router.get('/', controller.getTasks);
+router.get('/:id', controller.getTaskById);
+router.post('/', checkTaskLimit, controller.create);
+router.put('/:id', controller.update);
+router.delete('/:id', controller.delete);
 
 export default router;

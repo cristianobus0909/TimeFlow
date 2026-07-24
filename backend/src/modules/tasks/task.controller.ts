@@ -1,165 +1,107 @@
-import { Response } from 'express';
+import { Response, NextFunction } from 'express';
 import { AuthenticatedRequest } from '@core/middleware/auth.middleware';
-import { Task } from '@modules/tasks/task.model';
-import { TimeSession } from '@modules/timer/time-session.model';
-import { StatsService } from '@modules/analytics/stats.service';
+import { TaskService } from './task.service';
+import { createTaskSchema, updateTaskSchema } from './task.schema';
+import { ValidationError, AuthorizationError } from '@core/errors/classes';
 
-export const getTasks = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-  try {
-    const userId = req.user?.userId;
-    const { status, favorite, category } = req.query;
+export class TaskController {
+  private service: TaskService;
 
-    const query: any = { userId };
-    if (status) query.status = status;
-    if (favorite) query.favorite = favorite === 'true';
-    if (category) query.category = category;
-
-    const tasks = await Task.find(query).sort({ favorite: -1, name: 1 });
-
-    // Attach confidence level dynamically
-    const tasksWithConfidence = await Promise.all(
-      tasks.map(async (task) => {
-        const sessions = await TimeSession.find({ taskId: task._id }).select('duration');
-        const durations = sessions.map((s) => s.duration);
-        const confidenceLevel = StatsService.calculateConfidence(durations, task.averageDuration);
-        
-        return {
-          ...task.toObject(),
-          confidenceLevel,
-        };
-      })
-    );
-
-    res.status(200).json(tasksWithConfidence);
-  } catch (error) {
-    console.error('Error fetching tasks:', error);
-    res.status(500).json({ error: 'Error al obtener las tareas.' });
+  constructor() {
+    this.service = new TaskService();
   }
-};
 
-export const getTaskById = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-  try {
-    const { id } = req.params;
-    const userId = req.user?.userId;
-
-    const task = await Task.findOne({ _id: id, userId });
-    if (!task) {
-      res.status(404).json({ error: 'Tarea no encontrada.' });
-      return;
+  private getOrgId(req: AuthenticatedRequest): string {
+    const orgId = req.user?.organizationId;
+    if (!orgId) {
+      throw new AuthorizationError('Su cuenta no está vinculada a ninguna organización. Por favor, únase o cree una organización primero.');
     }
-
-    const sessions = await TimeSession.find({ taskId: task._id }).select('duration');
-    const durations = sessions.map((s) => s.duration);
-    const confidenceLevel = StatsService.calculateConfidence(durations, task.averageDuration);
-
-    res.status(200).json({
-      ...task.toObject(),
-      confidenceLevel,
-    });
-  } catch (error) {
-    console.error('Error fetching task:', error);
-    res.status(500).json({ error: 'Error al obtener la tarea.' });
+    return orgId;
   }
-};
 
-export const createTask = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-  try {
-    const userId = req.user?.userId;
-    const { name, description, category, color, icon } = req.body;
+  public getTasks = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const orgId = this.getOrgId(req);
+      const { status, favorite, category } = req.query;
 
-    if (!name) {
-      res.status(400).json({ error: 'El nombre de la tarea es obligatorio.' });
-      return;
+      const filters: any = {};
+      if (status) filters.status = status;
+      if (favorite) filters.favorite = favorite === 'true';
+      if (category) filters.category = category;
+
+      const tasks = await this.service.getTasks(orgId, filters);
+      res.status(200).json(tasks);
+    } catch (error) {
+      next(error);
     }
+  };
 
-    const task = new Task({
-      userId,
-      name,
-      description,
-      category,
-      color,
-      icon,
-    });
-
-    await task.save();
-    res.status(201).json(task);
-  } catch (error) {
-    console.error('Error creating task:', error);
-    res.status(500).json({ error: 'Error al crear la tarea.' });
-  }
-};
-
-export const updateTask = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-  try {
-    const { id } = req.params;
-    const userId = req.user?.userId;
-    const { name, description, category, color, icon, favorite, status } = req.body;
-
-    const task = await Task.findOne({ _id: id, userId });
-    if (!task) {
-      res.status(404).json({ error: 'Tarea no encontrada.' });
-      return;
+  public getTaskById = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const id = req.params.id as string;
+      const orgId = this.getOrgId(req);
+      const task = await this.service.getTaskById(id, orgId);
+      res.status(200).json(task);
+    } catch (error) {
+      next(error);
     }
+  };
 
-    if (name !== undefined) task.name = name;
-    if (description !== undefined) task.description = description;
-    if (category !== undefined) task.category = category;
-    if (color !== undefined) task.color = color;
-    if (icon !== undefined) task.icon = icon;
-    if (favorite !== undefined) task.favorite = favorite;
-    if (status !== undefined) task.status = status;
+  public create = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const orgId = this.getOrgId(req);
+      const userId = req.user?.userId;
+      if (!userId) {
+        throw new AuthorizationError('Usuario no autenticado.');
+      }
 
-    await task.save();
-    res.status(200).json(task);
-  } catch (error) {
-    console.error('Error updating task:', error);
-    res.status(500).json({ error: 'Error al actualizar la tarea.' });
-  }
-};
+      const result = createTaskSchema.safeParse(req.body);
+      if (!result.success) {
+        throw new ValidationError(result.error.issues[0].message);
+      }
 
-export const toggleFavorite = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-  try {
-    const { id } = req.params;
-    const userId = req.user?.userId;
-
-    const task = await Task.findOne({ _id: id, userId });
-    if (!task) {
-      res.status(404).json({ error: 'Tarea no encontrada.' });
-      return;
+      const task = await this.service.createTask(result.data, orgId, userId);
+      res.status(201).json(task);
+    } catch (error) {
+      next(error);
     }
+  };
 
-    task.favorite = !task.favorite;
-    await task.save();
-    res.status(200).json(task);
-  } catch (error) {
-    console.error('Error toggling favorite:', error);
-    res.status(500).json({ error: 'Error al alternar favorito.' });
-  }
-};
+  public update = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const id = req.params.id as string;
+      const orgId = this.getOrgId(req);
+      const userId = req.user?.userId;
+      if (!userId) {
+        throw new AuthorizationError('Usuario no autenticado.');
+      }
 
-export const deleteTask = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-  try {
-    const { id } = req.params;
-    const userId = req.user?.userId;
+      const result = updateTaskSchema.safeParse(req.body);
+      if (!result.success) {
+        throw new ValidationError(result.error.issues[0].message);
+      }
 
-    const task = await Task.findOne({ _id: id, userId });
-    if (!task) {
-      res.status(404).json({ error: 'Tarea no encontrada.' });
-      return;
+      const task = await this.service.updateTask(id, orgId, result.data, userId);
+      res.status(200).json(task);
+    } catch (error) {
+      next(error);
     }
+  };
 
-    // Instead of deleting, we change status to archived if there are executions,
-    // to preserve historical time session data
-    if (task.executionCount > 0) {
-      task.status = 'archived';
-      await task.save();
-      res.status(200).json({ message: 'Tarea archivada correctamente para preservar su historial.', task });
-    } else {
-      await Task.deleteOne({ _id: id });
-      res.status(200).json({ message: 'Tarea eliminada correctamente.' });
+  public delete = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const id = req.params.id as string;
+      const orgId = this.getOrgId(req);
+      const userId = req.user?.userId;
+      if (!userId) {
+        throw new AuthorizationError('Usuario no autenticado.');
+      }
+
+      await this.service.deleteTask(id, orgId, userId);
+      res.status(200).json({ message: 'Tarea archivada correctamente para preservar su historial.' });
+    } catch (error) {
+      next(error);
     }
-  } catch (error) {
-    console.error('Error deleting task:', error);
-    res.status(500).json({ error: 'Error al eliminar la tarea.' });
-  }
-};
+  };
+}
+export default TaskController;
