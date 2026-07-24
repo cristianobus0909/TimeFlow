@@ -34,6 +34,7 @@ export const CommandCenterPage: React.FC = () => {
   const { showToast } = toastStore();
   const { isRunning, isPaused, seconds, activeSessionId, startTimer, stopTimer, pauseTimer, resumeTimer } = timerStore();
   const { settings, loadSettings } = settingsStore();
+  const { convert } = currencyStore();
 
   React.useEffect(() => {
     loadSettings();
@@ -194,7 +195,6 @@ export const CommandCenterPage: React.FC = () => {
   const coach = overview?.coach || 'Buen ritmo de trabajo hoy.';
   const achievements = overview?.achievements || { title: 'Primer cliente premium', description: '¡Sigue sumando horas!' };
 
-  const { convert } = currencyStore();
   const baseOrgCurrency = 'USD';
   const userPreferredCurrency = settings.currency || 'USD';
 
