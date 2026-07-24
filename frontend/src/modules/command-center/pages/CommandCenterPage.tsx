@@ -1,5 +1,5 @@
 import React from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { api } from '@shared/services/api';
@@ -17,10 +17,13 @@ import {
   Activity,
   ArrowRight,
   Briefcase,
-  Sparkles
+  Sparkles,
+  Edit
 } from 'lucide-react';
 import { Card } from '@shared/components/Card';
 import { Button } from '@shared/components/Button';
+import { Modal } from '@shared/components/Modal';
+import { Input } from '@shared/components/Input';
 import { toastStore } from '@/store/toastStore';
 
 export const CommandCenterPage: React.FC = () => {
@@ -33,6 +36,32 @@ export const CommandCenterPage: React.FC = () => {
     if (completed) return -1;
     return 1;
   });
+
+  const [isGoalModalOpen, setIsGoalModalOpen] = React.useState(false);
+  const [targetHoursInput, setTargetHoursInput] = React.useState('8');
+  const [targetAmountInput, setTargetAmountInput] = React.useState('200');
+
+  const queryClient = useQueryClient();
+
+  const saveGoalMutation = useMutation({
+    mutationFn: (data: { targetHours: number; targetAmount: number }) =>
+      api.post('/work-sessions/goals', { ...data, date: new Date() }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['commandCenterOverview'] });
+      setIsGoalModalOpen(false);
+      showToast('Objetivo diario actualizado correctamente.');
+    },
+    onError: (err: any) => {
+      showToast(err.message || 'Error al actualizar el objetivo.', 'error');
+    }
+  });
+
+  const handleSaveGoal = (e: React.FormEvent) => {
+    e.preventDefault();
+    const hours = parseFloat(targetHoursInput) || 0;
+    const amount = parseFloat(targetAmountInput) || 0;
+    saveGoalMutation.mutate({ targetHours: hours, targetAmount: amount });
+  };
 
   const onboardingSteps = [
     {
@@ -97,6 +126,13 @@ export const CommandCenterPage: React.FC = () => {
     queryFn: () => api.get('/dashboard/overview'),
     refetchInterval: isRunning ? 5000 : false,
   });
+
+  React.useEffect(() => {
+    if (overview?.dailyGoal) {
+      setTargetHoursInput(overview.dailyGoal.targetHours?.toString() || '8');
+      setTargetAmountInput(overview.dailyGoal.targetAmount?.toString() || '200');
+    }
+  }, [overview]);
 
   const formatSeconds = (totalSeconds: number) => {
     const hrs = Math.floor(totalSeconds / 3600);
@@ -275,6 +311,13 @@ export const CommandCenterPage: React.FC = () => {
               <span className="text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 flex items-center gap-1.5">
                 <Target className="w-4 h-4 text-violet-500" />
                 Objetivo de Hoy
+                <button
+                  onClick={() => setIsGoalModalOpen(true)}
+                  className="p-1 hover:text-brand-purple text-zinc-400 dark:text-zinc-500 hover:bg-zinc-855/30 rounded transition-all cursor-pointer flex items-center"
+                  title="Editar objetivo diario"
+                >
+                  <Edit className="w-3 h-3" />
+                </button>
               </span>
               <span className="text-[10px] bg-violet-500/10 text-violet-600 dark:text-violet-400 px-2 py-0.5 rounded-md font-bold">
                 Diario
@@ -629,6 +672,34 @@ export const CommandCenterPage: React.FC = () => {
         </motion.div>
 
       </div>
+
+      {/* 🎯 Modal para Editar Objetivo Diario */}
+      <Modal isOpen={isGoalModalOpen} onClose={() => setIsGoalModalOpen(false)} title="Definir Objetivo Diario">
+        <form onSubmit={handleSaveGoal} className="flex flex-col gap-4">
+          <Input
+            label="Horas Objetivo de Enfoque por Día"
+            type="number"
+            value={targetHoursInput}
+            onChange={(e) => setTargetHoursInput(e.target.value)}
+            placeholder="ej. 8"
+          />
+          <Input
+            label="Monto Económico Objetivo por Día (€)"
+            type="number"
+            value={targetAmountInput}
+            onChange={(e) => setTargetAmountInput(e.target.value)}
+            placeholder="ej. 200"
+          />
+          <div className="flex justify-end gap-3 mt-6">
+            <Button type="button" variant="ghost" onClick={() => setIsGoalModalOpen(false)}>
+              Cancelar
+            </Button>
+            <Button type="submit" isLoading={saveGoalMutation.isPending}>
+              Guardar Objetivo
+            </Button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 };
