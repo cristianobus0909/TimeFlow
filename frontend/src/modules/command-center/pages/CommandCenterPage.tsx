@@ -691,7 +691,7 @@ export const CommandCenterPage: React.FC = () => {
             placeholder="ej. 8"
           />
           <Input
-            label="Monto Económico Objetivo por Día (€)"
+            label={`Monto Económico Objetivo por Día (${getCurrencySymbol(settings.currency)})`}
             type="number"
             value={targetAmountInput}
             onChange={(e) => setTargetAmountInput(e.target.value)}
