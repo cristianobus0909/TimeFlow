@@ -69,7 +69,9 @@ export const CommandCenterPage: React.FC = () => {
     e.preventDefault();
     const hours = parseFloat(targetHoursInput) || 0;
     const amount = parseFloat(targetAmountInput) || 0;
-    saveGoalMutation.mutate({ targetHours: hours, targetAmount: amount });
+    const userPreferredCurrency = settings.currency || 'USD';
+    const amountInBase = convert(amount, userPreferredCurrency, 'USD');
+    saveGoalMutation.mutate({ targetHours: hours, targetAmount: amountInBase });
   };
 
   const onboardingSteps = [
@@ -139,9 +141,11 @@ export const CommandCenterPage: React.FC = () => {
   React.useEffect(() => {
     if (overview?.dailyGoal) {
       setTargetHoursInput(overview.dailyGoal.targetHours?.toString() || '8');
-      setTargetAmountInput(overview.dailyGoal.targetAmount?.toString() || '200');
+      const userPreferredCurrency = settings.currency || 'USD';
+      const targetAmountInPreferred = convert(overview.dailyGoal.targetAmount || 200, 'USD', userPreferredCurrency);
+      setTargetAmountInput(Math.round(targetAmountInPreferred).toString());
     }
-  }, [overview]);
+  }, [overview, settings.currency]);
 
   const formatSeconds = (totalSeconds: number) => {
     const hrs = Math.floor(totalSeconds / 3600);
