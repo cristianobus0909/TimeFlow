@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { api } from '@shared/services/api';
 import { themeStore } from './themeStore';
+import { guessCurrencyFromTimezone } from './currencyStore';
 
 export interface UserSettings {
   language: 'es' | 'en';
@@ -23,7 +24,7 @@ interface SettingsState {
 const defaultSettings: UserSettings = {
   language: 'es',
   theme: 'dark',
-  currency: 'USD',
+  currency: guessCurrencyFromTimezone(),
   timezone: 'UTC',
   timeFormat: '24h',
   soundAlerts: true,

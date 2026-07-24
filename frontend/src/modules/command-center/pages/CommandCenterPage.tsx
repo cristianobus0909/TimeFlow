@@ -7,6 +7,7 @@ import { timerStore } from '@/store/timerStore';
 import { authStore } from '@/store/authStore';
 import { settingsStore } from '@/store/settingsStore';
 import { getCurrencySymbol } from '@shared/lib/currency';
+import { currencyStore } from '@/store/currencyStore';
 import { 
   Play, 
   Target, 
@@ -193,9 +194,14 @@ export const CommandCenterPage: React.FC = () => {
   const coach = overview?.coach || 'Buen ritmo de trabajo hoy.';
   const achievements = overview?.achievements || { title: 'Primer cliente premium', description: '¡Sigue sumando horas!' };
 
-  const targetAmount = dailyGoal.targetAmount || 200;
-  const goalPercentage = targetAmount > 0 ? Math.round((today.amount / targetAmount) * 100) : 0;
-  const remainingAmount = Math.max(0, targetAmount - today.amount);
+  const { convert } = currencyStore();
+  const baseOrgCurrency = 'USD';
+  const userPreferredCurrency = settings.currency || 'USD';
+
+  const todayAmountConverted = convert(today.amount, baseOrgCurrency, userPreferredCurrency);
+  const targetAmountConverted = convert(dailyGoal.targetAmount || 200, baseOrgCurrency, userPreferredCurrency);
+  const goalPercentage = targetAmountConverted > 0 ? Math.round((todayAmountConverted / targetAmountConverted) * 100) : 0;
+  const remainingAmountConverted = Math.max(0, targetAmountConverted - todayAmountConverted);
 
   const handleRecommendationClick = () => {
     if (isRunning) {
@@ -285,7 +291,7 @@ export const CommandCenterPage: React.FC = () => {
               Buenos días, {user?.name || 'Christian'} 👋
             </h1>
             <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
-              Hoy has generado <span className="font-bold text-zinc-950 dark:text-white">{getCurrencySymbol(settings.currency)}{today.amount.toFixed(2)} {settings.currency || 'USD'}</span> •{' '}
+              Hoy has generado <span className="font-bold text-zinc-950 dark:text-white">{getCurrencySymbol(settings.currency)}{todayAmountConverted.toFixed(2)} {settings.currency || 'USD'}</span> •{' '}
               <span className="text-violet-600 dark:text-violet-400 font-bold">{goalPercentage}%</span> del objetivo diario
             </p>
           </div>
@@ -333,12 +339,12 @@ export const CommandCenterPage: React.FC = () => {
             <div className="flex items-baseline justify-between py-4">
               <div className="flex flex-col">
                 <span className="text-xs text-zinc-400">Objetivo</span>
-                <span className="text-xl font-bold text-zinc-950 dark:text-white">{getCurrencySymbol(settings.currency)}{targetAmount} {settings.currency || 'USD'}</span>
+                <span className="text-xl font-bold text-zinc-950 dark:text-white">{getCurrencySymbol(settings.currency)}{targetAmountConverted.toFixed(2)} {settings.currency || 'USD'}</span>
               </div>
               <div className="flex flex-col text-right">
                 <span className="text-xs text-zinc-400">Restan</span>
                 <span className="text-xl font-bold text-emerald-600 dark:text-emerald-400">
-                  {getCurrencySymbol(settings.currency)}{remainingAmount.toFixed(2)} {settings.currency || 'USD'}
+                  {getCurrencySymbol(settings.currency)}{remainingAmountConverted.toFixed(2)} {settings.currency || 'USD'}
                 </span>
               </div>
             </div>
