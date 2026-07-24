@@ -182,5 +182,16 @@ export class ProjectController {
       next(error);
     }
   };
+
+  public getProjectHealth = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const id = req.params.id as string;
+      const orgId = this.getOrgId(req);
+      const health = await this.service.getProjectHealth(id, orgId);
+      res.status(200).json(health);
+    } catch (error) {
+      next(error);
+    }
+  };
 }
 export default ProjectController;

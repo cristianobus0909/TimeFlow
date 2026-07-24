@@ -23,6 +23,10 @@ import rateRoutes from '@modules/rates/rate.routes';
 import workSessionRoutes from '@modules/workSessions/work-session.routes';
 import dashboardRoutes from '@modules/dashboard/dashboard.routes';
 import focusRoutes from '@modules/focus/focus.routes';
+import commentRoutes from '@modules/comments/comment.routes';
+import attachmentRoutes from '@modules/attachments/attachment.routes';
+import timelineRoutes from '@modules/timeline/timeline.routes';
+import searchRoutes from '@modules/search/search.routes';
 
 const app = express();
 const PORT = env.PORT;
@@ -117,6 +121,10 @@ app.use('/api/v1/rates', rateRoutes);
 app.use('/api/v1/work-sessions', workSessionRoutes);
 app.use('/api/v1/dashboard', dashboardRoutes);
 app.use('/api/v1/focus', focusRoutes);
+app.use('/api/v1/comments', commentRoutes);
+app.use('/api/v1/attachments', attachmentRoutes);
+app.use('/api/v1/timeline', timelineRoutes);
+app.use('/api/v1/search', searchRoutes);
 
 // Global Error Handler Middleware
 app.use(errorHandler);

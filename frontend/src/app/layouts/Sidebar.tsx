@@ -8,6 +8,8 @@ import {
   Settings,
   LogOut,
   Zap,
+  Users,
+  Calendar,
 } from 'lucide-react';
 import { authStore } from '@/store/authStore';
 import { api } from '@shared/services/api';
@@ -22,6 +24,8 @@ export const Sidebar = () => {
     { name: t('navDashboard'), path: '/dashboard', icon: <LayoutDashboard className="w-4 h-4" />, shortcut: '⌥1' },
     { name: t('navTasks'), path: '/tasks', icon: <CheckSquare className="w-4 h-4" />, shortcut: '⌥2' },
     { name: t('navProjects'), path: '/projects', icon: <Folder className="w-4 h-4" />, shortcut: '⌥3' },
+    { name: 'Clientes', path: '/clients', icon: <Users className="w-4 h-4" />, shortcut: '⌥7' },
+    { name: 'Calendario', path: '/calendar', icon: <Calendar className="w-4 h-4" />, shortcut: '⌥8' },
     { name: t('navHistory'), path: '/history', icon: <History className="w-4 h-4" />, shortcut: '⌥4' },
     { name: t('navAnalytics'), path: '/analytics', icon: <BarChart3 className="w-4 h-4" />, shortcut: '⌥5' },
     { name: t('navSettings'), path: '/settings', icon: <Settings className="w-4 h-4" />, shortcut: '⌥6' },

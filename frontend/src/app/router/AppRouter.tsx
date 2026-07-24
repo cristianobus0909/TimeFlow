@@ -18,6 +18,9 @@ import { HistoryPage } from '@modules/history/HistoryPage';
 import { AnalyticsPage } from '@modules/reports/AnalyticsPage';
 import { SettingsPage } from '@modules/settings/SettingsPage';
 import { FocusPage } from '@modules/focus/pages/FocusPage';
+import { ClientsPage } from '@modules/clients/pages/ClientsPage';
+import { ClientDetailPage } from '@modules/clients/pages/ClientDetailPage';
+import { CalendarPage } from '@modules/calendar/pages/CalendarPage';
 
 export const AppRouter: React.FC = () => {
   return (
@@ -36,6 +39,9 @@ export const AppRouter: React.FC = () => {
           <Route path="/tasks" element={<TasksPage />} />
           <Route path="/projects" element={<ProjectsPage />} />
           <Route path="/projects/:id" element={<ProjectDetailPage />} />
+          <Route path="/clients" element={<ClientsPage />} />
+          <Route path="/clients/:id" element={<ClientDetailPage />} />
+          <Route path="/calendar" element={<CalendarPage />} />
           <Route path="/history" element={<HistoryPage />} />
           <Route path="/analytics" element={<AnalyticsPage />} />
           <Route path="/settings" element={<SettingsPage />} />

@@ -11,6 +11,7 @@ router.use(authenticateToken);
 
 router.get('/', controller.getProjects);
 router.get('/:id', controller.getProjectById);
+router.get('/:id/health', controller.getProjectHealth);
 router.post('/', checkProjectLimit, controller.create);
 router.put('/:id', controller.update);
 router.delete('/:id', controller.delete);

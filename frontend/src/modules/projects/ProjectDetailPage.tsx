@@ -33,6 +33,8 @@ export const ProjectDetailPage = () => {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [projectTab, setProjectTab] = useState<'tasks' | 'comments' | 'timeline'>('tasks');
+  const [newComment, setNewComment] = useState('');
 
   // Edit Project States
   const [editName, setEditName] = useState('');
@@ -49,6 +51,7 @@ export const ProjectDetailPage = () => {
   useEffect(() => {
     const handleReload = () => {
       queryClient.invalidateQueries({ queryKey: ['project', id] });
+      queryClient.invalidateQueries({ queryKey: ['project-health', id] });
     };
     window.addEventListener('session-logged', handleReload);
     return () => window.removeEventListener('session-logged', handleReload);
@@ -59,6 +62,27 @@ export const ProjectDetailPage = () => {
     queryKey: ['project', id],
     queryFn: () => api.get(`/projects/${id}`),
     enabled: !!id,
+  });
+
+  // Fetch Project Health
+  const { data: health } = useQuery({
+    queryKey: ['project-health', id],
+    queryFn: () => api.get(`/projects/${id}/health`),
+    enabled: !!id,
+  });
+
+  // Query Comments
+  const { data: comments = [], refetch: refetchComments } = useQuery({
+    queryKey: ['comments', 'PROJECT', id],
+    queryFn: () => api.get(`/comments?refType=PROJECT&refId=${id}`),
+    enabled: !!id && projectTab === 'comments',
+  });
+
+  // Query Timeline
+  const { data: events = [] } = useQuery({
+    queryKey: ['timeline', 'PROJECT', id],
+    queryFn: () => api.get(`/timeline?refType=PROJECT&refId=${id}`),
+    enabled: !!id && projectTab === 'timeline',
   });
 
   const project = projectData?.project;
@@ -88,6 +112,19 @@ export const ProjectDetailPage = () => {
     },
     onError: (err: any) => {
       showToast(err.message || 'Error al actualizar el proyecto.', 'error');
+    },
+  });
+
+  const addCommentMutation = useMutation({
+    mutationFn: (text: string) =>
+      api.post('/comments', { refType: 'PROJECT', refId: id, content: text }),
+    onSuccess: () => {
+      setNewComment('');
+      refetchComments();
+      showToast('Comentario añadido.');
+    },
+    onError: (err: any) => {
+      showToast(err.message || 'Error al enviar el comentario.', 'error');
     },
   });
 
@@ -284,7 +321,7 @@ export const ProjectDetailPage = () => {
       </div>
 
       {/* Estimations Cards Section */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-5">
         <Card hoverable>
           <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider block mb-1">
             Total Estimado
@@ -321,98 +358,220 @@ export const ProjectDetailPage = () => {
             />
           </div>
         </Card>
+
+        <Card hoverable className="relative overflow-hidden flex flex-col justify-between">
+          <div>
+            <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider block mb-1">
+              Salud del Proyecto
+            </span>
+            <div className="flex items-center gap-2 mt-1">
+              <span className={`w-2.5 h-2.5 rounded-full ${
+                health?.status === 'RED' ? 'bg-rose-500 animate-pulse' :
+                health?.status === 'YELLOW' ? 'bg-amber-500' : 'bg-emerald-500'
+              }`} />
+              <p className="text-sm font-black text-zinc-200">
+                {health?.label || 'Excelente'}
+              </p>
+            </div>
+            {health?.reasons && health.reasons.length > 0 && (
+              <p className="text-[9px] text-zinc-550 mt-2 leading-relaxed">
+                {health.reasons[0]}
+              </p>
+            )}
+          </div>
+        </Card>
       </div>
 
       {/* Main planner grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Project tasks list */}
-        <Card className="lg:col-span-2 flex flex-col justify-between">
-          <div>
-            <h3 className="text-sm font-bold text-zinc-200 mb-1">Planificador de Tareas</h3>
-            <p className="text-[10px] text-zinc-500 mb-6">
-              Arrastra y ordena las tareas. Al reordenar, se autocalculan los tiempos restantes.
-            </p>
+        {/* Project main content column (conditional tabs) */}
+        <div className="lg:col-span-2 flex flex-col gap-6">
+          {/* Tab Selectors */}
+          <div className="flex border-b border-zinc-900/60 pb-px gap-1 overflow-x-auto">
+            <button
+              onClick={() => setProjectTab('tasks')}
+              className={`px-4 py-2 text-xs font-bold border-b-2 transition-all cursor-pointer ${
+                projectTab === 'tasks' ? 'border-brand-purple text-zinc-200 bg-brand-purple/5' : 'border-transparent text-zinc-550 hover:text-zinc-300'
+              }`}
+            >
+              Planificador de Tareas
+            </button>
+            <button
+              onClick={() => setProjectTab('comments')}
+              className={`px-4 py-2 text-xs font-bold border-b-2 transition-all cursor-pointer ${
+                projectTab === 'comments' ? 'border-brand-purple text-zinc-200 bg-brand-purple/5' : 'border-transparent text-zinc-550 hover:text-zinc-300'
+              }`}
+            >
+              Comentarios
+            </button>
+            <button
+              onClick={() => setProjectTab('timeline')}
+              className={`px-4 py-2 text-xs font-bold border-b-2 transition-all cursor-pointer ${
+                projectTab === 'timeline' ? 'border-brand-purple text-zinc-200 bg-brand-purple/5' : 'border-transparent text-zinc-550 hover:text-zinc-300'
+              }`}
+            >
+              Actividad
+            </button>
           </div>
 
-          <div className="flex flex-col gap-2.5 flex-grow">
-            {projectTasks.map((pt: any, index: number) => (
-              <div
-                key={pt._id}
-                draggable
-                onDragStart={(e) => handleDragStart(e, index)}
-                onDragOver={(e) => handleDragOver(e, index)}
-                onDrop={(e) => handleDrop(e, index)}
-                className={`flex items-center justify-between p-3.5 rounded-xl border transition-all text-xs select-none ${
-                  pt.status === 'completed'
-                    ? 'bg-zinc-950/20 border-zinc-900/60 text-zinc-500'
-                    : 'bg-zinc-950 border-zinc-900 hover:border-zinc-800/80 text-zinc-300 hover:bg-zinc-900/40'
-                }`}
-              >
-                <div className="flex items-center gap-3 truncate">
-                  <div className="cursor-grab active:cursor-grabbing text-zinc-600 hover:text-zinc-400 p-0.5">
-                    <GripVertical className="w-4 h-4 flex-shrink-0" />
-                  </div>
-                  <button
-                    onClick={() =>
-                      toggleTaskStatusMutation.mutate({
-                        projectTaskId: pt._id,
-                        status: pt.status === 'completed' ? 'pending' : 'completed',
-                      })
-                    }
-                    className="p-0.5 hover:scale-105 transition-transform text-zinc-600 hover:text-emerald-400 cursor-pointer"
-                  >
-                    <CheckCircle className={`w-4 h-4 ${pt.status === 'completed' ? 'text-emerald-400 fill-emerald-400/10' : ''}`} />
-                  </button>
-                  <div className="flex flex-col text-left truncate">
-                    <span className={`font-semibold truncate ${pt.status === 'completed' ? 'line-through' : ''}`}>
-                      {pt.taskId?.name || 'Tarea eliminada'}
-                    </span>
-                    <span className="text-[9px] text-zinc-500 truncate mt-0.5">
-                      Promedio: {formatHours(pt.taskId?.averageDuration || 0)}
-                    </span>
-                  </div>
-                </div>
+          {projectTab === 'tasks' && (
+            <Card className="flex flex-col justify-between flex-grow">
+              <div>
+                <h3 className="text-sm font-bold text-zinc-200 mb-1">Planificador de Tareas</h3>
+                <p className="text-[10px] text-zinc-500 mb-6">
+                  Arrastra y ordena las tareas. Al reordenar, se autocalculan los tiempos restantes.
+                </p>
+              </div>
 
-                <div className="flex items-center gap-4">
-                  {pt.status !== 'completed' && (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => {
-                        if (isRunning) {
-                          showToast('Ya hay un cronómetro activo.', 'error');
-                          return;
+              <div className="flex flex-col gap-2.5 flex-grow">
+                {projectTasks.map((pt: any, index: number) => (
+                  <div
+                    key={pt._id}
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, index)}
+                    onDragOver={(e) => handleDragOver(e, index)}
+                    onDrop={(e) => handleDrop(e, index)}
+                    className={`flex items-center justify-between p-3.5 rounded-xl border transition-all text-xs select-none ${
+                      pt.status === 'completed'
+                        ? 'bg-zinc-950/20 border-zinc-900/60 text-zinc-500'
+                        : 'bg-zinc-950 border-zinc-900 hover:border-zinc-800/80 text-zinc-300 hover:bg-zinc-900/40'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3 truncate">
+                      <div className="cursor-grab active:cursor-grabbing text-zinc-600 hover:text-zinc-400 p-0.5">
+                        <GripVertical className="w-4 h-4 flex-shrink-0" />
+                      </div>
+                      <button
+                        onClick={() =>
+                          toggleTaskStatusMutation.mutate({
+                            projectTaskId: pt._id,
+                            status: pt.status === 'completed' ? 'pending' : 'completed',
+                          })
                         }
-                        startTimer(pt.taskId._id, id!, pt.taskId.name, pt.taskId.color, pt._id);
-                        showToast(`Temporizador iniciado para: ${pt.taskId.name}`);
-                      }}
-                      leftIcon={<Play className="w-3 h-3 fill-current" />}
-                    >
-                      Iniciar
-                    </Button>
-                  )}
-                  {pt.status === 'completed' && (
-                    <span className="font-mono text-[10px] text-zinc-500">
-                      Real: {formatHours(pt.actualDuration)}
-                    </span>
-                  )}
-                  <button
-                    onClick={() => removeTaskMutation.mutate(pt._id)}
-                    className="p-1.5 text-zinc-700 hover:text-rose-500 transition-colors cursor-pointer"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-            ))}
+                        className="p-0.5 hover:scale-105 transition-transform text-zinc-600 hover:text-emerald-400 cursor-pointer flex items-center justify-center"
+                      >
+                        <CheckCircle className={`w-4 h-4 ${pt.status === 'completed' ? 'text-emerald-400 fill-emerald-400/10' : ''}`} />
+                      </button>
+                      <div className="flex flex-col text-left truncate">
+                        <span className={`font-semibold truncate ${pt.status === 'completed' ? 'line-through' : ''}`}>
+                          {pt.taskId?.name || pt.taskId?.title || 'Tarea'}
+                        </span>
+                        <span className="text-[9px] text-zinc-500 truncate mt-0.5">
+                          Promedio: {formatHours(pt.taskId?.averageDuration || 0)}
+                        </span>
+                      </div>
+                    </div>
 
-            {projectTasks.length === 0 && (
-              <div className="py-16 text-center text-xs text-zinc-600 border border-dashed border-zinc-800 rounded-2xl">
-                Aún no has agregado tareas a este proyecto.
+                    <div className="flex items-center gap-4">
+                      {pt.status !== 'completed' && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => {
+                            if (isRunning) {
+                              showToast('Ya hay un cronómetro activo.', 'error');
+                              return;
+                            }
+                            startTimer(pt.taskId._id, id!, pt.taskId.name || pt.taskId.title, pt.taskId.color, pt._id);
+                            showToast(`Temporizador iniciado para: ${pt.taskId.name || pt.taskId.title}`);
+                          }}
+                          leftIcon={<Play className="w-3 h-3 fill-current" />}
+                        >
+                          Iniciar
+                        </Button>
+                      )}
+                      {pt.status === 'completed' && (
+                        <span className="font-mono text-[10px] text-zinc-500">
+                          Real: {formatHours(pt.actualDuration)}
+                        </span>
+                      )}
+                      <button
+                        onClick={() => removeTaskMutation.mutate(pt._id)}
+                        className="p-1.5 text-zinc-700 hover:text-rose-500 transition-colors cursor-pointer flex items-center justify-center"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+
+                {projectTasks.length === 0 && (
+                  <div className="py-16 text-center text-xs text-zinc-600 border border-dashed border-zinc-800 rounded-2xl">
+                    Aún no has agregado tareas a este proyecto.
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-        </Card>
+            </Card>
+          )}
+
+          {projectTab === 'comments' && (
+            <Card className="flex flex-col gap-4 flex-grow">
+              <h3 className="text-sm font-bold text-zinc-200">Comentarios del Proyecto</h3>
+              
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (!newComment.trim()) return;
+                  addCommentMutation.mutate(newComment);
+                }}
+                className="flex gap-3 bg-zinc-950 border border-zinc-900 p-2.5 rounded-xl"
+              >
+                <input
+                  value={newComment}
+                  onChange={(e) => setNewComment(e.target.value)}
+                  placeholder="Escribe un comentario sobre el proyecto..."
+                  className="w-full bg-zinc-900 border border-zinc-850 text-zinc-200 placeholder:text-zinc-650 rounded-xl px-4 py-2 text-xs outline-none focus:border-zinc-750"
+                />
+                <Button type="submit" disabled={!newComment.trim()} className="h-9">
+                  Enviar
+                </Button>
+              </form>
+
+              <div className="flex flex-col gap-3 overflow-y-auto max-h-[45vh] pr-1">
+                {comments.length === 0 ? (
+                  <div className="text-center py-8 text-xs text-zinc-600">Aún no hay comentarios en este proyecto.</div>
+                ) : (
+                  comments.map((comment: any) => (
+                    <div key={comment._id} className="bg-zinc-950 border border-zinc-900/60 p-3 rounded-xl flex flex-col gap-1 text-left">
+                      <div className="flex justify-between items-center text-[9px] text-zinc-550">
+                        <span className="font-bold text-zinc-300">{comment.user?.name || 'Usuario'}</span>
+                        <span>{new Date(comment.createdAt).toLocaleString()}</span>
+                      </div>
+                      <p className="text-xs text-zinc-400 whitespace-pre-wrap leading-relaxed">{comment.content}</p>
+                    </div>
+                  ))
+                )}
+              </div>
+            </Card>
+          )}
+
+          {projectTab === 'timeline' && (
+            <Card className="flex flex-col gap-4 flex-grow">
+              <h3 className="text-sm font-bold text-zinc-200">Historial del Proyecto</h3>
+              
+              <div className="relative border-l border-zinc-900 pl-6 flex flex-col gap-5 ml-2 overflow-y-auto max-h-[50vh] pr-1 text-left">
+                {events.length === 0 ? (
+                  <div className="text-zinc-650 text-xs py-4">Sin actividad registrada todavía.</div>
+                ) : (
+                  events.map((event: any) => (
+                    <div key={event._id} className="relative">
+                      <div className="absolute -left-[31px] top-1.5 w-2 h-2 rounded-full bg-brand-purple border border-zinc-950" />
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-[9px] text-zinc-600">
+                          {new Date(event.createdAt).toLocaleString()}
+                        </span>
+                        <p className="text-xs font-bold text-zinc-350">{event.action}</p>
+                        {event.detail && (
+                          <p className="text-[10px] text-zinc-500 leading-normal">{event.detail}</p>
+                        )}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </Card>
+          )}
+        </div>
 
         {/* Project info card details */}
         <Card className="flex flex-col justify-between gap-6">

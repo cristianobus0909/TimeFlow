@@ -66,7 +66,7 @@ export class TaskService {
       }
     }
 
-    return this.repository.create({
+    const taskData: any = {
       ...data,
       status: data.status as any,
       priority: data.priority as any,
@@ -76,7 +76,13 @@ export class TaskService {
       organization: new Types.ObjectId(orgId),
       userId: new Types.ObjectId(userId), // Legacy compatibility
       createdBy: new Types.ObjectId(userId),
-    });
+    };
+
+    if (data.dependencies) {
+      taskData.dependencies = data.dependencies.map(id => new Types.ObjectId(id));
+    }
+
+    return this.repository.create(taskData);
   }
 
   public async updateTask(
@@ -115,10 +121,18 @@ export class TaskService {
     }
 
     const updateData: any = { ...data };
-    if (data.project) updateData.project = new Types.ObjectId(data.project);
-    if (data.assignedTo) updateData.assignedTo = new Types.ObjectId(data.assignedTo);
+    if (data.project === null) updateData.project = null;
+    else if (data.project) updateData.project = new Types.ObjectId(data.project);
+
+    if (data.assignedTo === null) updateData.assignedTo = null;
+    else if (data.assignedTo) updateData.assignedTo = new Types.ObjectId(data.assignedTo);
+
     if (data.category) {
       updateData.category = Types.ObjectId.isValid(data.category) ? new Types.ObjectId(data.category) : data.category;
+    }
+
+    if (data.dependencies) {
+      updateData.dependencies = data.dependencies.map(id => new Types.ObjectId(id));
     }
 
     const updated = await this.repository.update(id, orgId, updateData, userId);

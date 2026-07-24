@@ -1,6 +1,11 @@
 import { Schema, model, Document, Types } from 'mongoose';
 import { IAuditFields, ISoftDeleteFields, auditSchemaDefinition, softDeletePlugin } from '@shared/utils/schemaHelpers';
 
+export interface ISubtask {
+  title: string;
+  completed: boolean;
+}
+
 export interface ITask extends Document, IAuditFields, ISoftDeleteFields {
   organization: Types.ObjectId;
   project?: Types.ObjectId;
@@ -17,6 +22,10 @@ export interface ITask extends Document, IAuditFields, ISoftDeleteFields {
   totalDuration: number;
   averageDuration: number;
   sessionsCount: number;
+  checklist: ISubtask[];
+  dueDate?: Date | null;
+  color?: string;
+  dependencies: Types.ObjectId[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -46,6 +55,15 @@ const TaskSchema = new Schema<ITask>(
     totalDuration: { type: Number, default: 0 },
     averageDuration: { type: Number, default: 0 },
     sessionsCount: { type: Number, default: 0 },
+    checklist: [
+      {
+        title: { type: String, required: true, trim: true },
+        completed: { type: Boolean, default: false },
+      },
+    ],
+    dueDate: { type: Date },
+    color: { type: String, trim: true },
+    dependencies: [{ type: Schema.Types.ObjectId, ref: 'Task' }],
     ...auditSchemaDefinition,
   },
   { timestamps: true }

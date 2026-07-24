@@ -1,5 +1,14 @@
 import { z } from 'zod';
 
+const contactSchema = z.object({
+  name: z.string().min(1, 'El nombre del contacto es obligatorio.'),
+  role: z.string().optional(),
+  email: z.string().email('El correo es inválido.').optional().or(z.literal('')),
+  phone: z.string().optional(),
+  whatsApp: z.string().optional(),
+  notes: z.string().optional(),
+});
+
 export const createClientSchema = z.object({
   name: z.string().min(1, 'El nombre del cliente es obligatorio.'),
   company: z.string().optional(),
@@ -12,6 +21,10 @@ export const createClientSchema = z.object({
   currency: z.string().default('USD'),
   notes: z.string().optional(),
   color: z.string().optional(),
+  website: z.string().optional(),
+  whatsApp: z.string().optional(),
+  timezone: z.string().optional(),
+  contacts: z.array(contactSchema).default([]),
 });
 
 export const updateClientSchema = z.object({
@@ -27,6 +40,10 @@ export const updateClientSchema = z.object({
   notes: z.string().optional(),
   color: z.string().optional(),
   status: z.enum(['ACTIVE', 'INACTIVE', 'ARCHIVED']).optional(),
+  website: z.string().optional(),
+  whatsApp: z.string().optional(),
+  timezone: z.string().optional(),
+  contacts: z.array(contactSchema).optional(),
 });
 
 export type CreateClientInput = z.infer<typeof createClientSchema>;
