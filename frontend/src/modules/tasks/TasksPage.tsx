@@ -34,6 +34,7 @@ const taskSchema = z.object({
   color: z.string().min(1, 'El color es obligatorio'),
   icon: z.string().default('Clock'),
   project: z.string().optional().nullable(),
+  dueDate: z.string().optional().nullable(),
 });
 
 type TaskFormValues = z.infer<typeof taskSchema>;
@@ -596,19 +597,30 @@ export const TasksPage = () => {
             {...register('category')}
           />
 
-          <div className="flex flex-col gap-1.5 text-left">
-            <label className="text-xs font-semibold text-zinc-400 tracking-wide uppercase">Proyecto Asociado (Opcional)</label>
-            <select
-              {...register('project')}
-              className="w-full bg-zinc-900 border border-zinc-850 text-zinc-200 rounded-xl px-4 py-3 text-xs outline-none focus:border-zinc-700"
-            >
-              <option value="">Sin Proyecto</option>
-              {projects.map((proj: any) => (
-                <option key={proj._id} value={proj._id}>
-                  {proj.name}
-                </option>
-              ))}
-            </select>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="flex flex-col gap-1.5 text-left">
+              <label className="text-xs font-semibold text-zinc-400 tracking-wide uppercase">Proyecto Asociado (Opcional)</label>
+              <select
+                {...register('project')}
+                className="w-full bg-zinc-900 border border-zinc-850 text-zinc-200 rounded-xl px-4 py-3 text-xs outline-none focus:border-zinc-700"
+              >
+                <option value="">Sin Proyecto</option>
+                {projects.map((proj: any) => (
+                  <option key={proj._id} value={proj._id}>
+                    {proj.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex flex-col gap-1.5 text-left">
+              <label className="text-xs font-semibold text-zinc-400 tracking-wide uppercase">Fecha de Vencimiento (Opcional)</label>
+              <input
+                type="date"
+                {...register('dueDate')}
+                className="w-full bg-zinc-900 border border-zinc-850 text-zinc-200 rounded-xl px-4 py-2.5 text-xs outline-none focus:border-zinc-700 font-medium"
+              />
+            </div>
           </div>
 
           {/* Color Picker */}
