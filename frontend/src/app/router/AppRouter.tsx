@@ -21,6 +21,9 @@ import { FocusPage } from '@modules/focus/pages/FocusPage';
 import { ClientsPage } from '@modules/clients/pages/ClientsPage';
 import { ClientDetailPage } from '@modules/clients/pages/ClientDetailPage';
 import { CalendarPage } from '@modules/calendar/pages/CalendarPage';
+import { FinancialDashboardPage } from '@modules/financial/pages/FinancialDashboardPage';
+import { InvoiceManagerPage } from '@modules/financial/pages/InvoiceManagerPage';
+import { ExpenseManagerPage } from '@modules/financial/pages/ExpenseManagerPage';
 
 export const AppRouter: React.FC = () => {
   return (
@@ -42,6 +45,9 @@ export const AppRouter: React.FC = () => {
           <Route path="/clients" element={<ClientsPage />} />
           <Route path="/clients/:id" element={<ClientDetailPage />} />
           <Route path="/calendar" element={<CalendarPage />} />
+          <Route path="/financial" element={<FinancialDashboardPage />} />
+          <Route path="/invoices" element={<InvoiceManagerPage />} />
+          <Route path="/expenses" element={<ExpenseManagerPage />} />
           <Route path="/history" element={<HistoryPage />} />
           <Route path="/analytics" element={<AnalyticsPage />} />
           <Route path="/settings" element={<SettingsPage />} />
