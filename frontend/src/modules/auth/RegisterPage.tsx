@@ -46,18 +46,26 @@ export const RegisterPage = () => {
 
   useEffect(() => {
     let active = true;
+    
+    // Register current active register callback globally
+    (window as any).googleCallback = handleGoogleLogin;
+
     const initializeGoogleBtn = () => {
       if (!active) return;
 
       if ((window as any).google) {
         const btnEl = document.getElementById('google-register-btn');
         if (btnEl && btnEl.children.length === 0) {
-          if ((window as any).googleCurrentPage !== 'register') {
+          if (!(window as any).googleInitialized) {
             (window as any).google.accounts.id.initialize({
               client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID || '',
-              callback: handleGoogleLogin,
+              callback: (response: any) => {
+                if (typeof (window as any).googleCallback === 'function') {
+                  (window as any).googleCallback(response);
+                }
+              },
             });
-            (window as any).googleCurrentPage = 'register';
+            (window as any).googleInitialized = true;
           }
           (window as any).google.accounts.id.renderButton(
             btnEl,
