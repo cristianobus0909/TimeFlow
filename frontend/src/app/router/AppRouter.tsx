@@ -29,9 +29,12 @@ import { AIDashboardPage } from '@modules/ai-dashboard/pages/AIDashboardPage';
 export const AppRouter: React.FC = () => {
   return (
     <Routes>
-      {/* Public Views (Guest only) */}
+      {/* Neutral Views (Accessible to both guests and logged-in users) */}
+      <Route path="/" element={<LandingPage />} />
+      <Route path="/pricing" element={<LandingPage />} />
+
+      {/* Public Views (Guests only - authenticated users get redirected to dashboard) */}
       <Route element={<PublicRoute />}>
-        <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
       </Route>

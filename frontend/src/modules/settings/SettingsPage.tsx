@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@shared/services/api';
 import { authStore } from '@/store/authStore';
@@ -11,6 +12,7 @@ import { useTranslation } from '@shared/lib/translations';
 
 export const SettingsPage = () => {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const { user, updateUserSubscription } = authStore();
   const { showToast } = toastStore();
   const { settings, updateSettings, loadSettings, isLoading: settingsLoading } = settingsStore();
@@ -164,7 +166,7 @@ export const SettingsPage = () => {
           </div>
 
           <div className="flex-shrink-0 w-full md:w-auto">
-            {user?.subscriptionPlan === 'pro' ? (
+            {['freelancer', 'pro', 'business'].includes(user?.subscriptionPlan || '') && user?.subscriptionStatus === 'active' ? (
               <Button
                 onClick={handlePortalSession}
                 isLoading={billingLoading}
@@ -175,12 +177,11 @@ export const SettingsPage = () => {
               </Button>
             ) : (
               <Button
-                onClick={handleCheckoutPro}
-                isLoading={billingLoading}
+                onClick={() => navigate('/pricing')}
                 leftIcon={<Sparkles className="w-4 h-4 fill-white/10" />}
                 className="w-full md:w-auto"
               >
-                {t('billingUpgradeBtn')}
+                Ver Planes de Pago
               </Button>
             )}
           </div>
