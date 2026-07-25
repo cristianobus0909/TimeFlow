@@ -45,22 +45,31 @@ export const RegisterPage = () => {
   };
 
   useEffect(() => {
+    let active = true;
     const initializeGoogleBtn = () => {
+      if (!active) return;
+
       if ((window as any).google) {
-        (window as any).google.accounts.id.initialize({
-          client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID || '',
-          callback: handleGoogleLogin,
-        });
-        (window as any).google.accounts.id.renderButton(
-          document.getElementById('google-register-btn'),
-          { theme: 'outline', size: 'large', width: 380 }
-        );
+        const btnEl = document.getElementById('google-register-btn');
+        if (btnEl && btnEl.children.length === 0) {
+          (window as any).google.accounts.id.initialize({
+            client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID || '',
+            callback: handleGoogleLogin,
+          });
+          (window as any).google.accounts.id.renderButton(
+            btnEl,
+            { theme: 'outline', size: 'large', width: 380 }
+          );
+        }
       } else {
         setTimeout(initializeGoogleBtn, 100);
       }
     };
 
     initializeGoogleBtn();
+    return () => {
+      active = false;
+    };
   }, []);
 
   const {
@@ -92,11 +101,28 @@ export const RegisterPage = () => {
 
   return (
     <div className="min-h-screen bg-zinc-950 flex flex-col justify-center items-center px-4 relative overflow-hidden select-text">
+      {/* Immersive card entrance styles */}
+      <style>{`
+        @keyframes cardFadeIn {
+          from {
+            opacity: 0;
+            transform: translateY(12px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        .animate-card-fade-in {
+          animation: cardFadeIn 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+      `}</style>
+
       {/* Background glow effects */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 rounded-full bg-brand-purple/10 blur-[120px] pointer-events-none" />
 
       {/* Main card */}
-      <div className="w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-3xl p-8 shadow-2xl relative">
+      <div className="w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-3xl p-8 shadow-2xl relative animate-card-fade-in">
         <div className="flex flex-col items-center mb-8">
           <Link to="/" className="flex items-center gap-2 mb-4 group cursor-pointer">
             <div className="w-9 h-9 rounded-xl bg-brand-purple flex items-center justify-center shadow-lg shadow-brand-purple/20 transition-transform group-hover:scale-105">
@@ -165,8 +191,8 @@ export const RegisterPage = () => {
         </div>
 
         {/* Google Button */}
-        <div className="w-full flex justify-center mb-6">
-          <div id="google-register-btn" className="w-full" style={{ minHeight: '40px' }} />
+        <div className="w-full flex justify-center mb-6" style={{ height: '40px', overflow: 'hidden' }}>
+          <div id="google-register-btn" className="w-full" style={{ height: '40px' }} />
         </div>
 
         <p className="text-center text-xs text-zinc-500 mt-6">

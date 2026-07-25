@@ -89,11 +89,28 @@ export const LoginPage = () => {
 
   return (
     <div className="min-h-screen bg-zinc-950 flex flex-col justify-center items-center px-4 relative overflow-hidden select-text">
+      {/* Immersive card entrance styles */}
+      <style>{`
+        @keyframes cardFadeIn {
+          from {
+            opacity: 0;
+            transform: translateY(12px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        .animate-card-fade-in {
+          animation: cardFadeIn 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+      `}</style>
+
       {/* Background glow effects */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 rounded-full bg-brand-purple/10 blur-[120px] pointer-events-none" />
 
       {/* Main card */}
-      <div className="w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-3xl p-8 shadow-2xl relative">
+      <div className="w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-3xl p-8 shadow-2xl relative animate-card-fade-in">
         <div className="flex flex-col items-center mb-8">
           <Link to="/" className="flex items-center gap-2 mb-4 group cursor-pointer">
             <div className="w-9 h-9 rounded-xl bg-brand-purple flex items-center justify-center shadow-lg shadow-brand-purple/20 transition-transform group-hover:scale-105">
@@ -144,8 +161,8 @@ export const LoginPage = () => {
         </div>
 
         {/* Google Button */}
-        <div className="w-full flex justify-center mb-6">
-          <div id="google-signin-btn" className="w-full" style={{ minHeight: '40px' }} />
+        <div className="w-full flex justify-center mb-6" style={{ height: '40px', overflow: 'hidden' }}>
+          <div id="google-signin-btn" className="w-full" style={{ height: '40px' }} />
         </div>
 
         <p className="text-center text-xs text-zinc-500 mt-6">
