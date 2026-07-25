@@ -176,42 +176,42 @@ export const LandingPage = () => {
             TimeFlow
           </span>
         </div>
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-4 md:gap-6">
           <a
             href="#features"
-            className="text-xs font-semibold text-zinc-400 hover:text-zinc-200 transition-colors"
+            className="hidden md:inline text-xs font-semibold text-zinc-400 hover:text-zinc-200 transition-colors"
           >
             Características
           </a>
           <a
             href="#pricing"
-            className="text-xs font-semibold text-zinc-400 hover:text-zinc-200 transition-colors"
+            className="hidden md:inline text-xs font-semibold text-zinc-400 hover:text-zinc-200 transition-colors"
           >
             Precios
           </a>
           <a
             href="#faq"
-            className="text-xs font-semibold text-zinc-400 hover:text-zinc-200 transition-colors"
+            className="hidden md:inline text-xs font-semibold text-zinc-400 hover:text-zinc-200 transition-colors"
           >
             Preguntas
           </a>
-          <span className="h-4 w-px bg-zinc-800" />
+          <span className="hidden md:inline h-4 w-px bg-zinc-800" />
           {isAuthenticated ? (
             <Button variant="secondary" size="sm" onClick={() => navigate('/dashboard')}>
               Ir a la App
             </Button>
           ) : (
-            <>
+            <div className="flex items-center gap-3">
               <button
                 onClick={() => navigate('/login')}
                 className="text-xs font-semibold text-zinc-400 hover:text-zinc-200 cursor-pointer"
               >
-                Iniciar sesión
+                Ingresar
               </button>
               <Button size="sm" onClick={() => navigate('/register')}>
-                Comenzar gratis
+                Registrarse
               </Button>
-            </>
+            </div>
           )}
         </div>
       </nav>

@@ -3,6 +3,7 @@ import { Outlet, useLocation } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
+import { BottomNav } from './BottomNav';
 import { CommandPalette } from '@shared/components/CommandPalette';
 import { ToastContainer } from '@shared/components/ToastContainer';
 import { timerStore } from '@/store/timerStore';
@@ -390,9 +391,11 @@ export const AppLayout = () => {
   }
 
   return (
-    <div className="flex h-screen w-screen bg-zinc-950 text-zinc-100 overflow-hidden select-none">
+    <div className="flex flex-col md:flex-row h-screen w-screen bg-zinc-950 text-zinc-100 overflow-hidden select-none">
       {/* Sidebar Navigation */}
-      <Sidebar />
+      <div className="hidden md:block">
+        <Sidebar />
+      </div>
 
       {/* Main Panel Content */}
       <div className="flex flex-col flex-grow h-full overflow-hidden">
@@ -400,11 +403,16 @@ export const AppLayout = () => {
         <Header onSearchClick={() => setIsPaletteOpen(true)} />
 
         {/* Page Wrapper */}
-        <main className="flex-grow overflow-y-auto bg-zinc-950 p-8 select-text">
+        <main className="flex-grow overflow-y-auto bg-zinc-950 p-4 md:p-8 select-text">
           <div className="max-w-6xl mx-auto w-full">
             <Outlet />
           </div>
         </main>
+
+        {/* Bottom Nav on Mobile */}
+        <div className="block md:hidden">
+          <BottomNav />
+        </div>
       </div>
 
       {/* Command Palette Overlay */}

@@ -12,11 +12,11 @@ export const Header = ({ onSearchClick }: HeaderProps) => {
   const navigate = useNavigate();
 
   return (
-    <header className="h-16 border-b border-zinc-200/60 dark:border-zinc-900/60 bg-white/70 dark:bg-zinc-950/60 backdrop-blur-md flex items-center justify-between px-8 sticky top-0 z-30">
-      {/* Search Command Palette Shortcut */}
+    <header className="h-16 border-b border-zinc-200/60 dark:border-zinc-900/60 bg-white/70 dark:bg-zinc-950/60 backdrop-blur-md flex items-center justify-between px-4 md:px-8 sticky top-0 z-30">
+      {/* Search Command Palette Shortcut (Desktop) */}
       <button
         onClick={onSearchClick}
-        className="flex items-center gap-3 bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200/80 dark:hover:bg-zinc-800/80 border border-zinc-200 dark:border-zinc-800 text-zinc-500 dark:text-zinc-400 px-3 py-1.5 rounded-xl text-xs font-medium w-64 text-left transition-all select-none cursor-pointer"
+        className="hidden md:flex items-center gap-3 bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200/80 dark:hover:bg-zinc-800/80 border border-zinc-200 dark:border-zinc-800 text-zinc-500 dark:text-zinc-400 px-3 py-1.5 rounded-xl text-xs font-medium w-64 text-left transition-all select-none cursor-pointer"
       >
         <Search className="w-3.5 h-3.5" />
         <span className="flex-grow">Buscar o ejecutar...</span>
@@ -25,11 +25,21 @@ export const Header = ({ onSearchClick }: HeaderProps) => {
         </span>
       </button>
 
+      {/* Mobile Search Button */}
+      <button
+        onClick={onSearchClick}
+        className="flex md:hidden p-2 rounded-xl text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 cursor-pointer"
+      >
+        <Search className="w-4 h-4" />
+      </button>
+
       {/* Center Sticky Timer Widget */}
-      <TimerWidget />
+      <div className="flex-grow md:flex-grow-0 flex justify-center">
+        <TimerWidget />
+      </div>
 
       {/* Right Controls */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-2 md:gap-4">
         {/* Focus Mode button */}
         <button
           onClick={() => navigate('/focus')}
