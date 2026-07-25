@@ -7,19 +7,7 @@ export const checkPaywall = async (
   res: Response,
   next: NextFunction
 ): Promise<void> => {
-  // If not authenticated, let auth.middleware handle it
   if (!req.user || !req.user.userId) {
-    return next();
-  }
-
-  // Bypass paywall for billing, auth, and profile settings/logout endpoints
-  const path = req.originalUrl || req.baseUrl || req.path || '';
-  if (
-    path.includes('/billing') ||
-    path.includes('/auth') ||
-    path.includes('/settings') ||
-    path.includes('/organizations/me')
-  ) {
     return next();
   }
 
@@ -29,23 +17,17 @@ export const checkPaywall = async (
       return next();
     }
 
-    const hasPaidPlan =
-      ['freelancer', 'pro', 'business'].includes(user.subscriptionPlan) &&
-      user.subscriptionStatus === 'active';
-    const isTrialing =
+    const isTrialExpired =
       user.subscriptionStatus === 'trialing' &&
       user.trialPeriodEnd &&
-      new Date() < new Date(user.trialPeriodEnd);
+      new Date() > new Date(user.trialPeriodEnd);
 
-    // If trial is expired and they haven't paid, block!
-    if (!hasPaidPlan && !isTrialing) {
-      res.status(402).json({
-        error: 'Suscripción requerida.',
-        code: 'PAYMENT_REQUIRED',
-        message: 'Tu período de prueba de 7 días ha finalizado. Por favor, selecciona una suscripción para continuar.',
-        trialExpired: true,
-      });
-      return;
+    // If the 7-day trial period ends and they have not paid, transition them to the Free tier automatically
+    if (isTrialExpired) {
+      user.subscriptionPlan = 'free';
+      user.subscriptionStatus = 'free';
+      await user.save();
+      console.log(`ℹ️ Usuario ${user._id} degradado automáticamente al plan Free al finalizar el trial.`);
     }
 
     next();

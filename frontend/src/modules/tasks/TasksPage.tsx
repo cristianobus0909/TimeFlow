@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
+import { useNavigate } from 'react-router-dom';
 import {
   Play,
   Pause,
@@ -26,6 +27,7 @@ import { Modal } from '@shared/components/Modal';
 import { timerStore } from '@/store/timerStore';
 import { toastStore } from '@/store/toastStore';
 import { settingsStore } from '@/store/settingsStore';
+import { authStore } from '@/store/authStore';
 
 const taskSchema = z.object({
   name: z.string().min(1, 'El nombre es obligatorio'),
@@ -40,8 +42,10 @@ const taskSchema = z.object({
 type TaskFormValues = z.infer<typeof taskSchema>;
 
 export const TasksPage = () => {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { showToast } = toastStore();
+  const { user } = authStore();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list');
@@ -367,7 +371,17 @@ export const TasksPage = () => {
               Kanban
             </button>
           </div>
-          <Button onClick={() => setIsModalOpen(true)} leftIcon={<Plus className="w-4 h-4" />}>
+          <Button
+            onClick={() => {
+              if (user?.subscriptionPlan === 'free' && tasks.length >= 15) {
+                showToast('Límite del plan Free alcanzado (máx 15 tareas). Pásate a Pro o Business para crear tareas ilimitadas.', 'error');
+                navigate('/pricing');
+              } else {
+                setIsModalOpen(true);
+              }
+            }}
+            leftIcon={<Plus className="w-4 h-4" />}
+          >
             Nueva Tarea
           </Button>
         </div>

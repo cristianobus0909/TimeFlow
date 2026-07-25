@@ -131,7 +131,18 @@ export const ProjectsPage = () => {
           <h2 className="text-2xl font-bold text-zinc-100 font-display">Tus Proyectos</h2>
           <p className="text-zinc-500 text-xs mt-0.5">Planifica estimaciones de tiempos basadas en tareas reales</p>
         </div>
-        <Button onClick={() => setIsModalOpen(true)} leftIcon={<Plus className="w-4 h-4" />}>
+        <Button
+          onClick={() => {
+            const activeProjectsCount = projects.filter((p: any) => p.status !== 'completed').length;
+            if (user?.subscriptionPlan === 'free' && activeProjectsCount >= 3) {
+              showToast('Límite del plan Free alcanzado (máx 3 proyectos activos). Pásate a Pro o Business para crear proyectos ilimitados.', 'error');
+              navigate('/pricing');
+            } else {
+              setIsModalOpen(true);
+            }
+          }}
+          leftIcon={<Plus className="w-4 h-4" />}
+        >
           Crear Proyecto
         </Button>
       </div>

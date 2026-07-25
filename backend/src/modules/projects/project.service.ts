@@ -5,6 +5,7 @@ import { ProjectTask } from '@modules/tasks/project-task.model';
 import { Task } from '@modules/tasks/task.model';
 import { WorkSession } from '@modules/workSessions/work-session.model';
 import { Client } from '@modules/clients/client.model';
+import { User } from '@modules/users/user.model';
 import { NotFoundError, ValidationError } from '@core/errors/classes';
 import { Types } from 'mongoose';
 
@@ -44,6 +45,18 @@ export class ProjectService {
       const client = await Client.findOne({ _id: data.client, organization: orgId });
       if (!client) {
         throw new ValidationError('El cliente especificado no pertenece a su organización.');
+      }
+    }
+
+    // Enforce free tier limits: Max 3 active projects
+    const user = await User.findById(userId);
+    if (user && user.subscriptionPlan === 'free') {
+      const activeProjectsCount = await Project.countDocuments({
+        organization: new Types.ObjectId(orgId),
+        status: { $ne: 'COMPLETED' },
+      });
+      if (activeProjectsCount >= 3) {
+        throw new ValidationError('Límite de proyectos alcanzado. Tu plan gratuito permite un máximo de 3 proyectos activos.');
       }
     }
 

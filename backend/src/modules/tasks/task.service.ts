@@ -1,5 +1,5 @@
 import { TaskRepository } from './task.repository';
-import { ITask } from './task.model';
+import { Task, ITask } from './task.model';
 import { CreateTaskInput, UpdateTaskInput } from './task.schema';
 import { Project } from '@modules/projects/project.model';
 import { Category } from '@modules/timer/category.model';
@@ -42,6 +42,14 @@ export class TaskService {
   }
 
   public async createTask(data: CreateTaskInput, orgId: string, userId: string): Promise<ITask> {
+    // Enforce free tier limits: Max 15 tasks
+    const user = await User.findById(userId);
+    if (user && user.subscriptionPlan === 'free') {
+      const taskCount = await Task.countDocuments({ organization: new Types.ObjectId(orgId) });
+      if (taskCount >= 15) {
+        throw new ValidationError('Límite de tareas alcanzado. Tu plan gratuito permite un máximo de 15 tareas en total.');
+      }
+    }
     // Validate project tenancy
     if (data.project) {
       const project = await Project.findOne({ _id: data.project, organization: orgId });
