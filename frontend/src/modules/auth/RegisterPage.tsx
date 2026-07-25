@@ -52,10 +52,13 @@ export const RegisterPage = () => {
       if ((window as any).google) {
         const btnEl = document.getElementById('google-register-btn');
         if (btnEl && btnEl.children.length === 0) {
-          (window as any).google.accounts.id.initialize({
-            client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID || '',
-            callback: handleGoogleLogin,
-          });
+          if ((window as any).googleCurrentPage !== 'register') {
+            (window as any).google.accounts.id.initialize({
+              client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID || '',
+              callback: handleGoogleLogin,
+            });
+            (window as any).googleCurrentPage = 'register';
+          }
           (window as any).google.accounts.id.renderButton(
             btnEl,
             { theme: 'outline', size: 'large', width: 380 }
