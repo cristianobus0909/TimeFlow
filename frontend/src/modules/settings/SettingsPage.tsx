@@ -95,9 +95,8 @@ export const SettingsPage = () => {
   const handleCheckoutPro = async () => {
     setBillingLoading(true);
     try {
-      const data = await api.post('/billing/checkout');
+      const data = await api.post('/billing/mercadopago/checkout', { plan: 'pro' });
       if (data.url) {
-        // Redirection to Stripe (or mock dashboard success link)
         window.location.href = data.url;
       }
     } catch (e: any) {

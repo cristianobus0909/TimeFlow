@@ -674,12 +674,12 @@ export const LandingPage = () => {
             <Button 
               variant="secondary" 
               className="w-full" 
-              isLoading={billingLoading && selectedPlanForCheckout === 'freelancer'}
+              isLoading={billingLoading}
               onClick={() => {
                 if (user?.subscriptionPlan === 'freelancer' && user?.subscriptionStatus === 'active') {
                   navigate('/dashboard');
                 } else {
-                  setSelectedPlanForCheckout('freelancer');
+                  handleBuyPlan('freelancer', 'mercadopago');
                 }
               }}
             >
@@ -737,12 +737,12 @@ export const LandingPage = () => {
             </div>
             <Button 
               className="w-full" 
-              isLoading={billingLoading && selectedPlanForCheckout === 'pro'}
+              isLoading={billingLoading}
               onClick={() => {
                 if (user?.subscriptionPlan === 'pro' && user?.subscriptionStatus === 'active') {
                   navigate('/dashboard');
                 } else {
-                  setSelectedPlanForCheckout('pro');
+                  handleBuyPlan('pro', 'mercadopago');
                 }
               }}
             >
@@ -790,12 +790,12 @@ export const LandingPage = () => {
             <Button 
               variant="secondary" 
               className="w-full" 
-              isLoading={billingLoading && selectedPlanForCheckout === 'business'}
+              isLoading={billingLoading}
               onClick={() => {
                 if (user?.subscriptionPlan === 'business' && user?.subscriptionStatus === 'active') {
                   navigate('/dashboard');
                 } else {
-                  setSelectedPlanForCheckout('business');
+                  handleBuyPlan('business', 'mercadopago');
                 }
               }}
             >
