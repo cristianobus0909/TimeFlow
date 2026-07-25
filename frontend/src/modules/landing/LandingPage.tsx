@@ -23,6 +23,7 @@ import { api } from '@shared/services/api';
 import { Button } from '@shared/components/Button';
 import { toastStore } from '@/store/toastStore';
 import { getCurrencySymbol } from '@shared/lib/currency';
+import { Modal } from '@shared/components/Modal';
 
 export const LandingPage = () => {
   const navigate = useNavigate();
@@ -31,6 +32,9 @@ export const LandingPage = () => {
   const [isAnnual, setIsAnnual] = useState(false);
   const [billingLoading, setBillingLoading] = useState(false);
   const [activeFaq, setActiveFaq] = useState<number | null>(null);
+
+  // Gateway Modal triggers
+  const [selectedPlanForCheckout, setSelectedPlanForCheckout] = useState<'freelancer' | 'pro' | 'business' | null>(null);
 
   // Interactive Simulator States
   const [complexity, setComplexity] = useState<'low' | 'medium' | 'high'>('medium');
@@ -73,20 +77,21 @@ export const LandingPage = () => {
     }
   };
 
-  const handleBuyPro = async () => {
+  const handleBuyPlan = async (plan: 'freelancer' | 'pro' | 'business', gateway: 'stripe' | 'mercadopago' | 'mobbex') => {
     if (!isAuthenticated) {
       navigate('/register');
       return;
     }
 
-    if (user?.subscriptionPlan === 'pro') {
-      navigate('/dashboard');
-      return;
-    }
-
     setBillingLoading(true);
     try {
-      const data = await api.post('/billing/checkout');
+      const endpoint = gateway === 'stripe' 
+        ? '/billing/checkout' 
+        : gateway === 'mercadopago' 
+          ? '/billing/mercadopago/checkout' 
+          : '/billing/mobbex/checkout';
+
+      const data = await api.post(endpoint, { plan });
       if (data.url) {
         window.location.href = data.url;
       }
@@ -447,7 +452,7 @@ export const LandingPage = () => {
                     <div className="flex gap-2">
                       <button
                         onClick={() => setSimTimerRunning(!simTimerRunning)}
-                        className="w-10 h-10 rounded-full bg-zinc-950 border border-zinc-800 text-zinc-400 hover:text-zinc-200 flex items-center justify-center cursor-pointer transition-all"
+                        className="w-10 h-10 rounded-full bg-zinc-950 border border-zinc-800 text-zinc-450 hover:text-zinc-200 flex items-center justify-center cursor-pointer transition-all"
                       >
                         {simTimerRunning ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4 fill-current" />}
                       </button>
@@ -587,14 +592,17 @@ export const LandingPage = () => {
       </section>
 
       {/* Pricing Tiers */}
-      <section id="pricing" className="py-24 px-6 max-w-6xl mx-auto border-t border-zinc-900">
+      <section id="pricing" className="py-24 px-6 max-w-7xl mx-auto border-t border-zinc-900">
         <div className="text-center mb-16">
-          <span className="text-xs font-semibold text-brand-purple uppercase tracking-widest">Precios Claros</span>
+          <span className="text-xs font-semibold text-brand-purple uppercase tracking-widest font-display">Planes de Suscripción</span>
           <h2 className="text-3xl md:text-4xl font-extrabold text-zinc-100 font-display mt-2 mb-4">
-            Un precio simple para profesionales
+            Elige el plan ideal para tu negocio
           </h2>
-          <p className="text-zinc-400 text-sm max-w-xl mx-auto mb-8">
-            Comienza a estimar de forma gratuita y escala a funciones avanzadas cuando tu volumen de proyectos lo requiera.
+          <p className="text-zinc-400 text-sm max-w-xl mx-auto mb-2">
+            Todos los registros nuevos incluyen un **período de prueba completo gratis por 7 días**.
+          </p>
+          <p className="text-zinc-500 text-xs max-w-xl mx-auto mb-8">
+            Si estás fuera de Argentina, se cobrará el equivalente en dólares ($15 / $25 / $45 USD) a través de Stripe.
           </p>
 
           {/* Pricing Toggle */}
@@ -621,19 +629,22 @@ export const LandingPage = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-3xl mx-auto items-stretch">
-          {/* Free Tier */}
-          <div className="bg-zinc-900/40 border border-zinc-800/80 rounded-3xl p-8 flex flex-col justify-between hover:border-zinc-700/60 transition-all">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto items-stretch">
+          {/* Freelancer Tier */}
+          <div className="bg-zinc-900/40 border border-zinc-800/80 rounded-3xl p-8 flex flex-col justify-between hover:border-zinc-700/60 transition-all text-left">
             <div>
               <div className="flex justify-between items-center mb-4">
-                <span className="text-sm font-bold text-zinc-300">Plan Free</span>
-                <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Gratis</span>
+                <span className="text-sm font-bold text-zinc-300">Freelancer</span>
+                <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Plan Básico</span>
               </div>
-              <div className="mb-6 text-left">
-                <span className="text-4xl font-extrabold text-zinc-100 font-display">$0</span>
-                <span className="text-xs text-zinc-500 font-medium"> / por siempre</span>
+              <div className="mb-6">
+                <span className="text-3xl font-extrabold text-zinc-100 font-display">
+                  {isAnnual ? '$12,000' : '$15,000'}
+                </span>
+                <span className="text-xs text-zinc-500 font-medium"> ARS / mes</span>
+                <span className="text-[10px] text-zinc-500 block mt-1">Facturado {isAnnual ? 'anual' : 'mensual'}</span>
               </div>
-              <ul className="flex flex-col gap-4 text-xs font-medium text-zinc-400 border-t border-zinc-800/80 pt-6 mb-8 text-left">
+              <ul className="flex flex-col gap-4 text-xs font-medium text-zinc-400 border-t border-zinc-800/80 pt-6 mb-8">
                 <li className="flex items-center gap-2.5">
                   <ChevronRight className="w-4 h-4 text-brand-purple flex-shrink-0" />
                   Hasta 3 proyectos activos
@@ -648,36 +659,48 @@ export const LandingPage = () => {
                 </li>
                 <li className="flex items-center gap-2.5 text-zinc-650 line-through">
                   <ChevronRight className="w-4 h-4 flex-shrink-0" />
-                  Inteligencia de confianza y desviación
+                  Conversión y selector de monedas
                 </li>
                 <li className="flex items-center gap-2.5 text-zinc-650 line-through">
                   <ChevronRight className="w-4 h-4 flex-shrink-0" />
-                  Exportar reportes (PDF, CSV, Excel)
+                  Exportaciones e Inteligencia Coach IA
                 </li>
               </ul>
             </div>
-            <Button variant="secondary" className="w-full" onClick={handleStartFree}>
-              Comenzar ahora
+            <Button 
+              variant="secondary" 
+              className="w-full" 
+              isLoading={billingLoading && selectedPlanForCheckout === 'freelancer'}
+              onClick={() => {
+                if (user?.subscriptionPlan === 'freelancer' && user?.subscriptionStatus === 'active') {
+                  navigate('/dashboard');
+                } else {
+                  setSelectedPlanForCheckout('freelancer');
+                }
+              }}
+            >
+              {user?.subscriptionPlan === 'freelancer' && user?.subscriptionStatus === 'active' ? 'Tu Plan Actual' : 'Adquirir Freelancer'}
             </Button>
           </div>
 
           {/* Pro Tier */}
-          <div className="bg-zinc-900/60 border-2 border-brand-purple rounded-3xl p-8 flex flex-col justify-between relative overflow-hidden shadow-2xl shadow-brand-purple/5">
+          <div className="bg-zinc-900/60 border-2 border-brand-purple rounded-3xl p-8 flex flex-col justify-between relative overflow-hidden shadow-2xl shadow-brand-purple/5 text-left">
             <div className="absolute top-0 right-0 bg-brand-purple text-white text-[9px] font-extrabold uppercase px-4 py-1 rounded-bl-xl tracking-wider">
               Recomendado
             </div>
             <div>
               <div className="flex justify-between items-center mb-4">
                 <span className="text-sm font-bold text-zinc-200">Plan Pro</span>
-                <span className="text-[10px] text-brand-purple font-bold uppercase tracking-wider">Suscripción</span>
+                <span className="text-[10px] text-brand-purple font-bold uppercase tracking-wider">Profesional</span>
               </div>
-              <div className="mb-6 text-left">
-                <span className="text-4xl font-extrabold text-zinc-100 font-display">
-                  {isAnnual ? '$7.20' : '$9.00'}
+              <div className="mb-6">
+                <span className="text-3xl font-extrabold text-zinc-100 font-display">
+                  {isAnnual ? '$20,000' : '$25,000'}
                 </span>
-                <span className="text-xs text-zinc-500 font-medium"> USD / mes, facturado {isAnnual ? 'anual' : 'mensual'}</span>
+                <span className="text-xs text-zinc-500 font-medium"> ARS / mes</span>
+                <span className="text-[10px] text-zinc-500 block mt-1">Facturado {isAnnual ? 'anual' : 'mensual'}</span>
               </div>
-              <ul className="flex flex-col gap-4 text-xs font-medium text-zinc-300 border-t border-zinc-800/80 pt-6 mb-8 text-left">
+              <ul className="flex flex-col gap-4 text-xs font-medium text-zinc-300 border-t border-zinc-800/80 pt-6 mb-8">
                 <li className="flex items-center gap-2.5">
                   <ChevronRight className="w-4 h-4 text-brand-purple flex-shrink-0" />
                   Proyectos activos ilimitados
@@ -696,12 +719,83 @@ export const LandingPage = () => {
                 </li>
                 <li className="flex items-center gap-2.5">
                   <ChevronRight className="w-4 h-4 text-brand-purple flex-shrink-0" />
-                  Exportador completo de reportes
+                  Selector contable de múltiples monedas
+                </li>
+                <li className="flex items-center gap-2.5">
+                  <ChevronRight className="w-4 h-4 text-brand-purple flex-shrink-0" />
+                  Exportador completo de reportes (PDF/Excel)
+                </li>
+                <li className="flex items-center gap-2.5 text-zinc-500 line-through">
+                  <ChevronRight className="w-4 h-4 flex-shrink-0" />
+                  Coach de IA y búsqueda semántica
                 </li>
               </ul>
             </div>
-            <Button className="w-full" isLoading={billingLoading} onClick={handleBuyPro}>
-              {user?.subscriptionPlan === 'pro' ? 'Ya eres Pro' : 'Adquirir Pro'}
+            <Button 
+              className="w-full" 
+              isLoading={billingLoading && selectedPlanForCheckout === 'pro'}
+              onClick={() => {
+                if (user?.subscriptionPlan === 'pro' && user?.subscriptionStatus === 'active') {
+                  navigate('/dashboard');
+                } else {
+                  setSelectedPlanForCheckout('pro');
+                }
+              }}
+            >
+              {user?.subscriptionPlan === 'pro' && user?.subscriptionStatus === 'active' ? 'Tu Plan Actual' : 'Adquirir Pro'}
+            </Button>
+          </div>
+
+          {/* Business Tier */}
+          <div className="bg-zinc-900/40 border border-zinc-800/80 rounded-3xl p-8 flex flex-col justify-between hover:border-zinc-700/60 transition-all text-left">
+            <div>
+              <div className="flex justify-between items-center mb-4">
+                <span className="text-sm font-bold text-zinc-300">Business</span>
+                <span className="text-[10px] text-indigo-400 font-bold uppercase tracking-wider font-display">Elite</span>
+              </div>
+              <div className="mb-6">
+                <span className="text-3xl font-extrabold text-zinc-100 font-display">
+                  {isAnnual ? '$36,000' : '$45,000'}
+                </span>
+                <span className="text-xs text-zinc-500 font-medium"> ARS / mes</span>
+                <span className="text-[10px] text-zinc-500 block mt-1">Facturado {isAnnual ? 'anual' : 'mensual'}</span>
+              </div>
+              <ul className="flex flex-col gap-4 text-xs font-medium text-zinc-400 border-t border-zinc-800/80 pt-6 mb-8">
+                <li className="flex items-center gap-2.5">
+                  <ChevronRight className="w-4 h-4 text-brand-purple flex-shrink-0" />
+                  <strong className="text-zinc-200">Todo lo incluido en Pro</strong>
+                </li>
+                <li className="flex items-center gap-2.5">
+                  <ChevronRight className="w-4 h-4 text-brand-purple flex-shrink-0" />
+                  Soporte prioritario para empresas
+                </li>
+                <li className="flex items-center gap-2.5">
+                  <ChevronRight className="w-4 h-4 text-brand-purple flex-shrink-0" />
+                  <strong className="text-brand-purple">Coach de IA & Daily Briefing inteligente</strong>
+                </li>
+                <li className="flex items-center gap-2.5">
+                  <ChevronRight className="w-4 h-4 text-brand-purple flex-shrink-0" />
+                  <strong className="text-brand-purple">Buscador semántico en lenguaje natural</strong>
+                </li>
+                <li className="flex items-center gap-2.5">
+                  <ChevronRight className="w-4 h-4 text-brand-purple flex-shrink-0" />
+                  Alertas tempranas de riesgos de desvíos
+                </li>
+              </ul>
+            </div>
+            <Button 
+              variant="secondary" 
+              className="w-full" 
+              isLoading={billingLoading && selectedPlanForCheckout === 'business'}
+              onClick={() => {
+                if (user?.subscriptionPlan === 'business' && user?.subscriptionStatus === 'active') {
+                  navigate('/dashboard');
+                } else {
+                  setSelectedPlanForCheckout('business');
+                }
+              }}
+            >
+              {user?.subscriptionPlan === 'business' && user?.subscriptionStatus === 'active' ? 'Tu Plan Actual' : 'Adquirir Business'}
             </Button>
           </div>
         </div>
@@ -758,6 +852,93 @@ export const LandingPage = () => {
           <p>© 2026 TimeFlow. Todos los derechos reservados.</p>
         </div>
       </footer>
+
+      {/* 💳 Modal de Selección de Pasarela de Pago */}
+      <Modal
+        isOpen={!!selectedPlanForCheckout}
+        onClose={() => setSelectedPlanForCheckout(null)}
+        title={`Suscribirse al Plan ${(selectedPlanForCheckout || '').toUpperCase()}`}
+      >
+        <div className="flex flex-col gap-4 py-2 text-left">
+          <p className="text-xs text-zinc-400">
+            Selecciona tu método de pago preferido para completar la suscripción.
+          </p>
+
+          <div className="flex flex-col gap-3 mt-2">
+            {/* Mercado Pago */}
+            <button
+              onClick={() => {
+                if (selectedPlanForCheckout) {
+                  handleBuyPlan(selectedPlanForCheckout, 'mercadopago');
+                  setSelectedPlanForCheckout(null);
+                }
+              }}
+              className="flex items-center justify-between p-4 bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 rounded-2xl cursor-pointer transition-all group"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-500 font-bold text-xs">
+                  MP
+                </div>
+                <div className="text-left">
+                  <h4 className="text-xs font-bold text-zinc-200">Mercado Pago</h4>
+                  <p className="text-[10px] text-zinc-500">Saldo, Débito, Tarjetas locales o Rapipago/Pago Fácil</p>
+                </div>
+              </div>
+              <ChevronRight className="w-4 h-4 text-zinc-500 group-hover:text-zinc-300 transition-colors" />
+            </button>
+
+            {/* Mobbex */}
+            <button
+              onClick={() => {
+                if (selectedPlanForCheckout) {
+                  handleBuyPlan(selectedPlanForCheckout, 'mobbex');
+                  setSelectedPlanForCheckout(null);
+                }
+              }}
+              className="flex items-center justify-between p-4 bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 rounded-2xl cursor-pointer transition-all group"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-400 font-bold text-xs">
+                  MB
+                </div>
+                <div className="text-left">
+                  <h4 className="text-xs font-bold text-zinc-200">Mobbex</h4>
+                  <p className="text-[10px] text-zinc-500">Tarjetas de crédito locales y planes de cuotas</p>
+                </div>
+              </div>
+              <ChevronRight className="w-4 h-4 text-zinc-500 group-hover:text-zinc-300 transition-colors" />
+            </button>
+
+            {/* Stripe */}
+            <button
+              onClick={() => {
+                if (selectedPlanForCheckout) {
+                  handleBuyPlan(selectedPlanForCheckout, 'stripe');
+                  setSelectedPlanForCheckout(null);
+                }
+              }}
+              className="flex items-center justify-between p-4 bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 rounded-2xl cursor-pointer transition-all group"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-brand-purple/10 flex items-center justify-center text-brand-purple font-bold text-xs">
+                  ST
+                </div>
+                <div className="text-left">
+                  <h4 className="text-xs font-bold text-zinc-200">Stripe (Internacional)</h4>
+                  <p className="text-[10px] text-zinc-500">Tarjetas de crédito internacionales (USD)</p>
+                </div>
+              </div>
+              <ChevronRight className="w-4 h-4 text-zinc-500 group-hover:text-zinc-300 transition-colors" />
+            </button>
+          </div>
+
+          <div className="flex justify-end mt-4">
+            <Button variant="ghost" onClick={() => setSelectedPlanForCheckout(null)}>
+              Cancelar
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };

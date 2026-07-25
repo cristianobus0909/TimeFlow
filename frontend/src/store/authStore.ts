@@ -4,8 +4,9 @@ export interface UserProfile {
   id: string;
   name: string;
   email: string;
-  subscriptionPlan: 'free' | 'pro';
-  subscriptionStatus: 'free' | 'active' | 'canceled' | 'past_due';
+  subscriptionPlan: 'free' | 'freelancer' | 'pro' | 'business';
+  subscriptionStatus: 'free' | 'trialing' | 'active' | 'canceled' | 'past_due';
+  trialPeriodEnd?: string;
 }
 
 interface AuthState {
@@ -16,7 +17,7 @@ interface AuthState {
   setAuth: (user: UserProfile | null, token: string | null) => void;
   clearAuth: () => void;
   setLoading: (isLoading: boolean) => void;
-  updateUserSubscription: (plan: 'free' | 'pro', status: string) => void;
+  updateUserSubscription: (plan: 'free' | 'freelancer' | 'pro' | 'business', status: string) => void;
 }
 
 // Check local storage for initial auth load

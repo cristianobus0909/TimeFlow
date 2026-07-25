@@ -111,11 +111,18 @@ app.get('/', (req, res) => {
 
 // Register Routes
 app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/billing', billingRoutes);
+
+// Apply global authentication and paywall locks for all other business domains
+import { authenticateToken } from '@core/middleware/auth.middleware';
+import { checkPaywall } from '@core/middleware/paywall.middleware';
+app.use(authenticateToken as any);
+app.use(checkPaywall as any);
+
 app.use('/api/v1/tasks', taskRoutes);
 app.use('/api/v1/projects', projectRoutes);
 app.use('/api/v1/sessions', sessionRoutes);
 app.use('/api/v1/settings', settingsRoutes);
-app.use('/api/v1/billing', billingRoutes);
 app.use('/api/v1/analytics', analyticsRoutes);
 app.use('/api/v1/organizations', organizationRoutes);
 app.use('/api/v1/clients', clientRoutes);

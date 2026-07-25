@@ -8,10 +8,11 @@ export interface IUser extends Document, IAuditFields, ISoftDeleteFields {
   googleId?: string;
   refreshToken?: string;
   stripeCustomerId?: string;
-  subscriptionStatus: 'free' | 'active' | 'canceled' | 'past_due';
-  subscriptionPlan: 'free' | 'pro';
+  subscriptionStatus: 'free' | 'trialing' | 'active' | 'canceled' | 'past_due';
+  subscriptionPlan: 'free' | 'freelancer' | 'pro' | 'business';
   subscriptionId?: string;
   subscriptionPeriodEnd?: Date;
+  trialPeriodEnd?: Date;
   organization?: Types.ObjectId;
   role: 'OWNER' | 'ADMIN' | 'MANAGER' | 'MEMBER' | 'VIEWER';
   timezone: string;
@@ -33,16 +34,17 @@ const UserSchema = new Schema<IUser>(
     stripeCustomerId: { type: String },
     subscriptionStatus: {
       type: String,
-      enum: ['free', 'active', 'canceled', 'past_due'],
-      default: 'free',
+      enum: ['free', 'trialing', 'active', 'canceled', 'past_due'],
+      default: 'trialing',
     },
     subscriptionPlan: {
       type: String,
-      enum: ['free', 'pro'],
+      enum: ['free', 'freelancer', 'pro', 'business'],
       default: 'free',
     },
     subscriptionId: { type: String },
     subscriptionPeriodEnd: { type: Date },
+    trialPeriodEnd: { type: Date },
     organization: { type: Schema.Types.ObjectId, ref: 'Organization' },
     role: {
       type: String,

@@ -93,7 +93,8 @@ export class AuthService {
       passwordHash,
       stripeCustomerId,
       subscriptionPlan: 'free',
-      subscriptionStatus: 'free',
+      subscriptionStatus: 'trialing',
+      trialPeriodEnd: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
     });
 
     const settings = new Settings({
@@ -117,6 +118,7 @@ export class AuthService {
         email: user.email,
         subscriptionPlan: user.subscriptionPlan,
         subscriptionStatus: user.subscriptionStatus,
+        trialPeriodEnd: user.trialPeriodEnd,
       } as any,
       accessToken,
       refreshToken,
@@ -158,6 +160,7 @@ export class AuthService {
         email: user.email,
         subscriptionPlan: user.subscriptionPlan,
         subscriptionStatus: user.subscriptionStatus,
+        trialPeriodEnd: user.trialPeriodEnd,
       } as any,
       accessToken,
       refreshToken,
@@ -234,7 +237,8 @@ export class AuthService {
         googleId,
         stripeCustomerId,
         subscriptionPlan: 'free',
-        subscriptionStatus: 'free',
+        subscriptionStatus: 'trialing',
+        trialPeriodEnd: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
       });
 
       const settings = new Settings({
@@ -259,6 +263,7 @@ export class AuthService {
         email: user.email,
         subscriptionPlan: user.subscriptionPlan,
         subscriptionStatus: user.subscriptionStatus,
+        trialPeriodEnd: user.trialPeriodEnd,
       } as any,
       accessToken,
       refreshToken,
