@@ -38,22 +38,31 @@ export const LoginPage = () => {
   };
 
   useEffect(() => {
+    let active = true;
     const initializeGoogleBtn = () => {
+      if (!active) return;
+
       if ((window as any).google) {
-        (window as any).google.accounts.id.initialize({
-          client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID || '',
-          callback: handleGoogleLogin,
-        });
-        (window as any).google.accounts.id.renderButton(
-          document.getElementById('google-signin-btn'),
-          { theme: 'outline', size: 'large', width: 380 }
-        );
+        const btnEl = document.getElementById('google-signin-btn');
+        if (btnEl && btnEl.children.length === 0) {
+          (window as any).google.accounts.id.initialize({
+            client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID || '',
+            callback: handleGoogleLogin,
+          });
+          (window as any).google.accounts.id.renderButton(
+            btnEl,
+            { theme: 'outline', size: 'large', width: 380 }
+          );
+        }
       } else {
         setTimeout(initializeGoogleBtn, 100);
       }
     };
 
     initializeGoogleBtn();
+    return () => {
+      active = false;
+    };
   }, []);
 
   const {
