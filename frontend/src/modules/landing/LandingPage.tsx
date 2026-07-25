@@ -139,20 +139,24 @@ export const LandingPage = () => {
 
   const faqItems = [
     {
-      q: '¿Cómo funciona la estimación inteligente?',
-      a: 'TimeFlow no utiliza un promedio matemático simple. Aplica un promedio móvil ponderado donde las últimas veces que realizaste una tarea tienen mayor peso. Si mejoras tu velocidad o automatizas parte de tu flujo, TimeFlow lo detectará y adaptará las estimaciones de tus proyectos en tiempo real.',
+      q: '¿Qué sucede al finalizar los 7 días de prueba gratis?',
+      a: 'Una vez transcurridos los 7 días, tu acceso al sistema se pausará temporalmente y serás redirigido a la sección de selección de planes para suscribirte. Tus proyectos, tareas u hojas de horas no se perderán; todo se mantendrá seguro y volverá a estar disponible en el momento en que abones tu suscripción.',
     },
     {
-      q: '¿Puedo usar mi propia cuenta de Stripe para facturar?',
-      a: 'TimeFlow es una aplicación SaaS completa lista para producción. Integra la pasarela de Stripe en modo Sandbox/Test para pruebas de desarrollo. Si deseas desplegarla comercialmente, solo debes reemplazar las variables de entorno de Stripe por tus claves de producción.',
+      q: '¿Cómo funciona la estimación inteligente de proyectos?',
+      a: 'TimeFlow no utiliza un promedio matemático simple. Aplica un algoritmo de promedio móvil ponderado (EMA) sobre tus ejecuciones anteriores de tareas similares. Esto significa que si mejoras tu velocidad o automatizas parte de tu flujo, las estimaciones futuras de proyectos se adaptarán automáticamente a tu ritmo de trabajo actual.',
+    },
+    {
+      q: '¿Qué métodos de pago puedo utilizar para suscribirme?',
+      a: 'Ofrecemos opciones seguras según tu ubicación. Si estás en Argentina, puedes utilizar Mercado Pago (con saldo, débito, crédito local o Rapipago/Pago Fácil) y Mobbex (tarjetas de crédito locales y planes de cuotas). Para el resto del mundo, procesamos pagos de forma segura en dólares mediante tarjetas internacionales con Stripe.',
     },
     {
       q: '¿Qué mide el "Nivel de Confianza"?',
-      a: 'Calcula la desviación estándar de tus ejecuciones. Si tus tiempos varían muy poco, el nivel de confianza será "Alto". Si hay mucha volatilidad o tienes pocas muestras (menos de 5 ejecuciones), el nivel será "Bajo", indicando que necesitas registrar más sesiones para una estimación certera.',
+      a: 'Calcula la desviación estándar de tus ejecuciones. Si tus tiempos dedicados a tareas recurrentes varían poco, el nivel de confianza será "Alto". Si los tiempos son muy volátiles o tienes menos de 5 sesiones grabadas para esa tarea, el nivel será "Bajo", indicando que requieres registrar más sesiones para tener una estimación exacta.',
     },
     {
-      q: '¿Cómo puedo exportar mis datos?',
-      a: 'Los usuarios del Plan Pro tienen acceso completo a exportaciones virtualizadas de todo el historial en formatos PDF, CSV y Excel para adjuntar en reportes de horas o facturas de clientes.',
+      q: '¿Puedo cambiar de plan o cancelar en cualquier momento?',
+      a: 'Sí, puedes hacer un upgrade, downgrade o cancelar tu suscripción en cualquier momento desde la sección de Configuración de tu Perfil. Si cancelas tu suscripción, mantendrás el acceso a tu plan actual hasta que finalice tu período de facturación mensual contratado.',
     },
   ];
 
