@@ -237,7 +237,7 @@ export const createMercadoPagoCheckout = async (req: AuthenticatedRequest, res: 
       return;
     }
 
-    const isMpMock = !mpToken || mpToken.includes('TEST-');
+    const isMpMock = !mpToken || mpToken.includes('TEST-') || mpToken.includes('your_mercadopago_access_token_here');
 
     // MERCADO PAGO MOCK UPGRADE
     if (isMpMock) {
@@ -351,7 +351,7 @@ export const createMobbexCheckout = async (req: AuthenticatedRequest, res: Respo
       return;
     }
 
-    const isMobbexMock = !mobbexApiKey || !mobbexAccessToken;
+    const isMobbexMock = !mobbexApiKey || !mobbexAccessToken || mobbexApiKey.includes('your_') || mobbexAccessToken.includes('your_');
 
     // MOBBEX MOCK UPGRADE
     if (isMobbexMock) {
