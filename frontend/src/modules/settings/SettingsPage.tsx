@@ -109,17 +109,7 @@ export const SettingsPage = () => {
   };
 
   const handlePortalSession = async () => {
-    setBillingLoading(true);
-    try {
-      const data = await api.post('/billing/portal');
-      if (data.url) {
-        window.location.href = data.url;
-      }
-    } catch (e: any) {
-      showToast(e.message || 'Error al abrir el portal de facturación.', 'error');
-    } finally {
-      setBillingLoading(false);
-    }
+    navigate('/pricing');
   };
 
   if (settingsLoading) {
