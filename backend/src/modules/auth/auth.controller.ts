@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { AuthService } from './auth.service';
 import { registerSchema, loginSchema, googleAuthSchema } from './auth.schema';
 import { ValidationError } from '@core/errors/classes';
+import { env } from '@config/env';
 
 export class AuthController {
   private service: AuthService;
@@ -19,10 +20,11 @@ export class AuthController {
 
       const { user, accessToken, refreshToken } = await this.service.register(result.data);
 
+      const isProd = env.NODE_ENV === 'production';
       res.cookie('refreshToken', refreshToken, {
         httpOnly: true,
-        secure: true,
-        sameSite: 'none',
+        secure: isProd,
+        sameSite: isProd ? 'none' : 'lax',
         maxAge: 7 * 24 * 60 * 60 * 1000,
       });
 
@@ -45,10 +47,11 @@ export class AuthController {
 
       const { user, accessToken, refreshToken } = await this.service.login(result.data);
 
+      const isProd = env.NODE_ENV === 'production';
       res.cookie('refreshToken', refreshToken, {
         httpOnly: true,
-        secure: true,
-        sameSite: 'none',
+        secure: isProd,
+        sameSite: isProd ? 'none' : 'lax',
         maxAge: 7 * 24 * 60 * 60 * 1000,
       });
 
@@ -78,10 +81,11 @@ export class AuthController {
       const token = req.cookies.refreshToken;
       await this.service.logout(token);
 
+      const isProd = env.NODE_ENV === 'production';
       res.clearCookie('refreshToken', {
         httpOnly: true,
-        secure: true,
-        sameSite: 'none',
+        secure: isProd,
+        sameSite: isProd ? 'none' : 'lax',
       });
 
       res.status(200).json({ message: 'Sesión cerrada correctamente.' });
@@ -99,10 +103,11 @@ export class AuthController {
 
       const { user, accessToken, refreshToken } = await this.service.googleAuth(result.data.idToken);
 
+      const isProd = env.NODE_ENV === 'production';
       res.cookie('refreshToken', refreshToken, {
         httpOnly: true,
-        secure: true,
-        sameSite: 'none',
+        secure: isProd,
+        sameSite: isProd ? 'none' : 'lax',
         maxAge: 7 * 24 * 60 * 60 * 1000,
       });
 
