@@ -7,6 +7,7 @@ import { toastStore } from '@/store/toastStore';
 import { settingsStore } from '@/store/settingsStore';
 import { Card } from '@shared/components/Card';
 import { Button } from '@shared/components/Button';
+import { Modal } from '@shared/components/Modal';
 import { Sun, Moon, Volume2, Globe, Shield, Sparkles, CreditCard, DollarSign, Building } from 'lucide-react';
 import { useTranslation } from '@shared/lib/translations';
 
@@ -17,6 +18,7 @@ export const SettingsPage = () => {
   const { showToast } = toastStore();
   const { settings, updateSettings, loadSettings, isLoading: settingsLoading } = settingsStore();
   const [billingLoading, setBillingLoading] = useState(false);
+  const [isBillingModalOpen, setIsBillingModalOpen] = useState(false);
   const { t } = useTranslation();
 
   // Sync settings when mounting settings page
@@ -94,10 +96,10 @@ export const SettingsPage = () => {
     showToast(`Moneda preferida cambiada a ${curr}.`);
   };
 
-  const handleCheckoutPro = async () => {
+  const handleUpgradePlan = async (plan: 'freelancer' | 'pro' | 'business') => {
     setBillingLoading(true);
     try {
-      const data = await api.post('/billing/mercadopago/checkout', { plan: 'pro' });
+      const data = await api.post('/billing/mercadopago/checkout', { plan });
       if (data.url) {
         window.location.href = data.url;
       }
@@ -109,7 +111,7 @@ export const SettingsPage = () => {
   };
 
   const handlePortalSession = async () => {
-    navigate('/pricing');
+    setIsBillingModalOpen(true);
   };
 
   if (settingsLoading) {
@@ -167,7 +169,7 @@ export const SettingsPage = () => {
               </Button>
             ) : (
               <Button
-                onClick={() => navigate('/pricing')}
+                onClick={() => setIsBillingModalOpen(true)}
                 leftIcon={<Sparkles className="w-4 h-4 fill-white/10" />}
                 className="w-full md:w-auto"
               >
@@ -347,6 +349,167 @@ export const SettingsPage = () => {
           </div>
         </div>
       </Card>
+
+      {/* Modern Subscription Billing Modal */}
+      <Modal isOpen={isBillingModalOpen} onClose={() => setIsBillingModalOpen(false)} title="Administrar Facturación y Suscripción">
+        <div className="flex flex-col gap-6 select-text text-left max-w-4xl w-full">
+          {/* Current plan detail */}
+          <div className="p-4 bg-zinc-950 border border-zinc-900 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+            <div>
+              <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider block">Plan Actual</span>
+              <h4 className="text-sm font-bold text-zinc-200 mt-0.5">
+                TimeFlow {user?.subscriptionPlan === 'free' ? 'Free (Básico)' : user?.subscriptionPlan?.toUpperCase()}
+              </h4>
+              <p className="text-zinc-500 text-[11px] mt-1 leading-relaxed">
+                {user?.subscriptionStatus === 'trialing' && user?.trialPeriodEnd
+                  ? `Tu prueba gratuita de 7 días finaliza el ${new Date(user.trialPeriodEnd).toLocaleDateString()}.`
+                  : user?.subscriptionStatus === 'active' && user?.subscriptionPeriodEnd
+                    ? `Tu licencia expira el ${new Date(user.subscriptionPeriodEnd).toLocaleDateString()}.`
+                    : 'Estás en el plan básico gratuito. Mejora tu plan para tener proyectos y tareas ilimitadas.'}
+              </p>
+            </div>
+            <div className="flex-shrink-0">
+              <span className={`text-[10px] font-extrabold uppercase px-2.5 py-1 rounded-lg border ${
+                user?.subscriptionStatus === 'active' 
+                  ? 'text-emerald-450 bg-emerald-950/20 border-emerald-900/50' 
+                  : user?.subscriptionStatus === 'trialing' 
+                    ? 'text-brand-purple bg-brand-purple/10 border-brand-purple/20' 
+                    : 'text-zinc-500 bg-zinc-950 border-zinc-900'
+              }`}>
+                {user?.subscriptionStatus?.toUpperCase() || 'FREE'}
+              </span>
+            </div>
+          </div>
+
+          <div className="text-xs font-bold text-zinc-400 mt-2">Planes Disponibles (Mercado Pago)</div>
+
+          {/* Pricing cards grid */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Freelancer Plan Card */}
+            <div className={`bg-zinc-950/40 border rounded-2xl p-5 flex flex-col justify-between gap-4 text-left transition-all ${
+              user?.subscriptionPlan === 'freelancer' && user?.subscriptionStatus === 'active' 
+                ? 'border-brand-purple bg-brand-purple/5' 
+                : 'border-zinc-850 hover:border-zinc-800'
+            }`}>
+              <div>
+                <div className="flex justify-between items-start">
+                  <span className="text-xs font-bold text-zinc-200">Freelancer</span>
+                  {user?.subscriptionPlan === 'freelancer' && user?.subscriptionStatus === 'active' && (
+                    <span className="text-[8px] bg-brand-purple text-white px-2 py-0.5 rounded font-extrabold uppercase">Activo</span>
+                  )}
+                </div>
+                <div className="mt-2">
+                  <span className="text-xl font-black text-zinc-100 font-display">$15,000</span>
+                  <span className="text-[10px] text-zinc-500"> ARS / mes</span>
+                </div>
+                <ul className="flex flex-col gap-2 mt-4 text-[10px] text-zinc-500 font-medium leading-relaxed">
+                  <li>• Max 3 proyectos activos</li>
+                  <li>• Max 15 tareas totales</li>
+                  <li>• Promedio simple de tiempos</li>
+                  <li className="text-zinc-700 line-through">• Selector de monedas</li>
+                  <li className="text-zinc-700 line-through">• Coach de IA / Reportes</li>
+                </ul>
+              </div>
+
+              <Button
+                size="sm"
+                className="w-full text-xs font-bold py-1.5"
+                variant={user?.subscriptionPlan === 'freelancer' && user?.subscriptionStatus === 'active' ? 'secondary' : 'primary'}
+                isLoading={billingLoading}
+                onClick={() => handleUpgradePlan('freelancer')}
+              >
+                {user?.subscriptionPlan === 'freelancer' && user?.subscriptionStatus === 'active' ? 'Renovar Plan' : 'Adquirir Freelancer'}
+              </Button>
+            </div>
+
+            {/* Pro Plan Card */}
+            <div className={`bg-zinc-950/40 border rounded-2xl p-5 flex flex-col justify-between gap-4 text-left transition-all relative overflow-hidden ${
+              user?.subscriptionPlan === 'pro' && user?.subscriptionStatus === 'active' 
+                ? 'border-brand-purple bg-brand-purple/5' 
+                : 'border-zinc-850 hover:border-zinc-800'
+            }`}>
+              <div className="absolute top-0 right-0 bg-brand-purple text-white text-[7px] font-extrabold uppercase px-3 py-0.5 rounded-bl-lg tracking-wider">
+                Popular
+              </div>
+              <div>
+                <div className="flex justify-between items-start">
+                  <span className="text-xs font-bold text-zinc-200">Plan Pro</span>
+                  {user?.subscriptionPlan === 'pro' && user?.subscriptionStatus === 'active' && (
+                    <span className="text-[8px] bg-brand-purple text-white px-2 py-0.5 rounded font-extrabold uppercase">Activo</span>
+                  )}
+                </div>
+                <div className="mt-2">
+                  <span className="text-xl font-black text-zinc-100 font-display">$25,000</span>
+                  <span className="text-[10px] text-zinc-500"> ARS / mes</span>
+                </div>
+                <ul className="flex flex-col gap-2 mt-4 text-[10px] text-zinc-500 font-medium leading-relaxed">
+                  <li>• Proyectos activos ilimitados</li>
+                  <li>• Tareas ilimitadas</li>
+                  <li className="text-emerald-450 font-semibold">• Estimación Weighted EMA</li>
+                  <li>• Múltiples monedas (ARS/USD)</li>
+                  <li>• Exportador PDF / Excel</li>
+                  <li className="text-zinc-700 line-through">• Coach de IA / Briefs</li>
+                </ul>
+              </div>
+
+              <Button
+                size="sm"
+                className="w-full text-xs font-bold py-1.5"
+                variant={user?.subscriptionPlan === 'pro' && user?.subscriptionStatus === 'active' ? 'secondary' : 'primary'}
+                isLoading={billingLoading}
+                onClick={() => handleUpgradePlan('pro')}
+              >
+                {user?.subscriptionPlan === 'pro' && user?.subscriptionStatus === 'active' 
+                  ? 'Renovar Plan' 
+                  : user?.subscriptionPlan === 'freelancer' && user?.subscriptionStatus === 'active' 
+                    ? 'Mejorar a Pro' 
+                    : 'Adquirir Pro'}
+              </Button>
+            </div>
+
+            {/* Business Plan Card */}
+            <div className={`bg-zinc-950/40 border rounded-2xl p-5 flex flex-col justify-between gap-4 text-left transition-all ${
+              user?.subscriptionPlan === 'business' && user?.subscriptionStatus === 'active' 
+                ? 'border-brand-purple bg-brand-purple/5' 
+                : 'border-zinc-850 hover:border-zinc-800'
+            }`}>
+              <div>
+                <div className="flex justify-between items-start">
+                  <span className="text-xs font-bold text-zinc-200">Business</span>
+                  {user?.subscriptionPlan === 'business' && user?.subscriptionStatus === 'active' && (
+                    <span className="text-[8px] bg-brand-purple text-white px-2 py-0.5 rounded font-extrabold uppercase">Activo</span>
+                  )}
+                </div>
+                <div className="mt-2">
+                  <span className="text-xl font-black text-zinc-100 font-display">$45,000</span>
+                  <span className="text-[10px] text-zinc-500"> ARS / mes</span>
+                </div>
+                <ul className="flex flex-col gap-2 mt-4 text-[10px] text-zinc-500 font-medium leading-relaxed">
+                  <li>• Todo lo incluido en Plan Pro</li>
+                  <li className="text-brand-purple font-semibold">• Coach de IA integrado</li>
+                  <li>• Sugerencias semánticas</li>
+                  <li>• Daily Briefs de actividades</li>
+                  <li>• Soporte premium prioritario</li>
+                </ul>
+              </div>
+
+              <Button
+                size="sm"
+                className="w-full text-xs font-bold py-1.5"
+                variant={user?.subscriptionPlan === 'business' && user?.subscriptionStatus === 'active' ? 'secondary' : 'primary'}
+                isLoading={billingLoading}
+                onClick={() => handleUpgradePlan('business')}
+              >
+                {user?.subscriptionPlan === 'business' && user?.subscriptionStatus === 'active' 
+                  ? 'Renovar Plan' 
+                  : ['freelancer', 'pro'].includes(user?.subscriptionPlan || '') && user?.subscriptionStatus === 'active' 
+                    ? 'Mejorar a Business' 
+                    : 'Adquirir Business'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };
