@@ -7,6 +7,7 @@ export interface UserProfile {
   subscriptionPlan: 'free' | 'freelancer' | 'pro' | 'business';
   subscriptionStatus: 'free' | 'trialing' | 'active' | 'canceled' | 'past_due';
   trialPeriodEnd?: string;
+  subscriptionPeriodEnd?: string;
 }
 
 interface AuthState {

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Outlet, useLocation } from 'react-router-dom';
+import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
@@ -10,11 +10,72 @@ import { timerStore } from '@/store/timerStore';
 import { settingsStore } from '@/store/settingsStore';
 import { toastStore } from '@/store/toastStore';
 import { themeStore } from '@/store/themeStore';
+import { authStore } from '@/store/authStore';
 import { Button } from '@shared/components/Button';
-import { Play, Pause, Square, Maximize2, Keyboard } from 'lucide-react';
+import { Play, Pause, Square, Maximize2, Keyboard, AlertTriangle, Sparkles } from 'lucide-react';
 import { api } from '@shared/services/api';
 
+const SubscriptionAlert = () => {
+  const { user } = authStore();
+  const navigate = useNavigate();
+
+  if (!user) return null;
+
+  // Paid plan expiration check
+  if (['freelancer', 'pro', 'business'].includes(user.subscriptionPlan) && user.subscriptionStatus === 'active' && user.subscriptionPeriodEnd) {
+    const timeDiff = new Date(user.subscriptionPeriodEnd).getTime() - new Date().getTime();
+    const daysRemaining = timeDiff / (1000 * 60 * 60 * 24);
+
+    if (daysRemaining >= 0 && daysRemaining <= 5) {
+      return (
+        <div className="bg-amber-950/20 border-b border-zinc-900/60 dark:border-zinc-900 px-4 py-2.5 text-center flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3 text-xs select-none">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 text-amber-500 animate-pulse flex-shrink-0" />
+            <span className="text-zinc-300">
+              Tu plan <strong className="text-amber-400">{user.subscriptionPlan.toUpperCase()}</strong> vence en <strong>{Math.max(1, Math.ceil(daysRemaining))} {Math.max(1, Math.ceil(daysRemaining)) === 1 ? 'día' : 'días'}</strong>. Renueva hoy para mantener proyectos ilimitados.
+            </span>
+          </div>
+          <button
+            onClick={() => navigate('/pricing')}
+            className="bg-amber-600 hover:bg-amber-500 text-zinc-950 font-bold px-3 py-1 text-[10px] rounded-lg cursor-pointer transition-colors"
+          >
+            Renovar Ahora
+          </button>
+        </div>
+      );
+    }
+  }
+
+  // Trial expiration check
+  if (user.subscriptionStatus === 'trialing' && user.trialPeriodEnd) {
+    const timeDiff = new Date(user.trialPeriodEnd).getTime() - new Date().getTime();
+    const daysRemaining = timeDiff / (1000 * 60 * 60 * 24);
+
+    if (daysRemaining >= 0 && daysRemaining <= 3) {
+      return (
+        <div className="bg-brand-purple/10 border-b border-zinc-900/60 dark:border-zinc-900 px-4 py-2.5 text-center flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3 text-xs select-none">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-brand-purple animate-pulse flex-shrink-0" />
+            <span className="text-zinc-300">
+              Tu prueba gratuita finaliza en <strong>{Math.max(1, Math.ceil(daysRemaining))} {Math.max(1, Math.ceil(daysRemaining)) === 1 ? 'día' : 'días'}</strong>. Asegura tu plan para evitar límites de proyectos.
+            </span>
+          </div>
+          <button
+            onClick={() => navigate('/pricing')}
+            className="bg-brand-purple hover:bg-brand-purple-hover text-white font-bold px-3 py-1 text-[10px] rounded-lg cursor-pointer transition-colors"
+          >
+            Elegir Plan
+          </button>
+        </div>
+      );
+    }
+  }
+
+  return null;
+};
+
 export const AppLayout = () => {
+  const navigate = useNavigate();
   const [isPaletteOpen, setIsPaletteOpen] = useState(false);
   const { showToast } = toastStore();
   const { loadSettings } = settingsStore();
@@ -401,6 +462,9 @@ export const AppLayout = () => {
       <div className="flex flex-col flex-grow h-full overflow-hidden">
         {/* Top Header */}
         <Header onSearchClick={() => setIsPaletteOpen(true)} />
+
+        {/* Expiration alert warnings */}
+        <SubscriptionAlert />
 
         {/* Page Wrapper */}
         <main className="flex-grow overflow-y-auto bg-zinc-950 p-4 md:p-8 select-text">

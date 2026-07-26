@@ -30,6 +30,20 @@ export const checkPaywall = async (
       console.log(`ℹ️ Usuario ${user._id} degradado automáticamente al plan Free al finalizar el trial.`);
     }
 
+    const isPaidExpired =
+      ['freelancer', 'pro', 'business'].includes(user.subscriptionPlan) &&
+      user.subscriptionStatus === 'active' &&
+      user.subscriptionPeriodEnd &&
+      new Date() > new Date(user.subscriptionPeriodEnd);
+
+    // If the paid period ends, transition them to the Free tier automatically
+    if (isPaidExpired) {
+      user.subscriptionPlan = 'free';
+      user.subscriptionStatus = 'free';
+      await user.save();
+      console.log(`ℹ️ Usuario ${user._id} degradado automáticamente al plan Free al expirar su suscripción paga.`);
+    }
+
     next();
   } catch (error) {
     next(error);
