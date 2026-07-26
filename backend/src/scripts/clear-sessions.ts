@@ -23,6 +23,9 @@ async function run() {
     console.log('✅ Conectado con éxito.');
 
     console.log('🧹 Eliminando tokens de actualización (sesiones) de todos los usuarios...');
+    if (!mongoose.connection.db) {
+      throw new Error('La conexión a la base de datos no está activa.');
+    }
     const result = await mongoose.connection.db.collection('users').updateMany(
       {},
       { $set: { refreshToken: null } }

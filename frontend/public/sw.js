@@ -17,9 +17,19 @@ self.addEventListener('fetch', (event) => {
 
   // Pass-through fetch handler for other requests
   event.respondWith(
-    fetch(event.request).catch(() => {
-      // Offline fallback can be added here in production
-      return caches.match(event.request);
+    fetch(event.request).catch(async () => {
+      // Return cached response if available
+      const cachedResponse = await caches.match(event.request);
+      if (cachedResponse) {
+        return cachedResponse;
+      }
+      
+      // Fallback response to prevent Service Worker crash when fetch is blocked by CORS/SSO redirects
+      return new Response('Network connection failed or request blocked by CORS.', {
+        status: 503,
+        statusText: 'Service Unavailable',
+        headers: new Headers({ 'Content-Type': 'text/plain' }),
+      });
     })
   );
 });

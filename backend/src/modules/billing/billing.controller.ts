@@ -237,7 +237,7 @@ export const createMercadoPagoCheckout = async (req: AuthenticatedRequest, res: 
       return;
     }
 
-    const isMpMock = !mpToken || mpToken.includes('TEST-') || mpToken.includes('your_mercadopago_access_token_here');
+    const isMpMock = !mpToken || mpToken.includes('your_mercadopago_access_token_here');
 
     // MERCADO PAGO MOCK UPGRADE
     if (isMpMock) {
@@ -293,7 +293,9 @@ export const createMercadoPagoCheckout = async (req: AuthenticatedRequest, res: 
       throw new Error(data.message || 'Error creating preference at Mercado Pago');
     }
 
-    res.status(200).json({ url: data.init_point });
+    const isSandbox = mpToken.startsWith('TEST-');
+    const redirectUrl = isSandbox ? data.sandbox_init_point : data.init_point;
+    res.status(200).json({ url: redirectUrl || data.init_point });
   } catch (error: any) {
     console.error('Error creating Mercado Pago Preference:', error);
     res.status(500).json({ error: error.message || 'Error al iniciar la sesión de Mercado Pago.' });
