@@ -238,7 +238,9 @@ export const createMercadoPagoCheckout = async (req: AuthenticatedRequest, res: 
     }
 
     const currentMpToken = process.env.MERCADOPAGO_ACCESS_TOKEN || '';
-    const currentFrontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const requestOrigin = (req.headers.origin as string) || (req.headers.referer ? new URL(req.headers.referer as string).origin : '');
+    const rawFrontendUrl = requestOrigin || process.env.FRONTEND_URL || 'http://localhost:5173';
+    const currentFrontendUrl = rawFrontendUrl.replace(/\/$/, '');
     const isMpMock = !currentMpToken || currentMpToken.includes('your_mercadopago_access_token_here');
 
     // MERCADO PAGO MOCK UPGRADE
