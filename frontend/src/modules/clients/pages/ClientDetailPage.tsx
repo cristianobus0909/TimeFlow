@@ -125,7 +125,11 @@ export const ClientDetailPage: React.FC = () => {
     return <div className="py-16 text-center text-xs text-rose-500">Cliente no encontrado.</div>;
   }
 
-  const clientProjects = projects.filter((p: any) => p.client === id);
+  const clientProjects = projects.filter((p: any) => {
+    if (!p.client) return false;
+    const clientId = typeof p.client === 'object' ? p.client._id : p.client;
+    return clientId === id || p.client?.name === client.name;
+  });
 
   return (
     <div className="flex flex-col gap-6">

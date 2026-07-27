@@ -218,7 +218,9 @@ export const ProjectsPage = () => {
                 </h3>
               </Link>
               {project.client && (
-                <span className="text-[10px] text-zinc-500 font-semibold block mb-2">Cliente: {project.client}</span>
+                <span className="text-[10px] text-zinc-500 font-semibold block mb-2">
+                  Cliente: {typeof project.client === 'object' ? (project.client.name || project.client.company) : project.client}
+                </span>
               )}
               {project.description && (
                 <p className="text-[11px] text-zinc-500 line-clamp-2 leading-relaxed">{project.description}</p>

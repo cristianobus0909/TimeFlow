@@ -99,7 +99,7 @@ export const ProjectDetailPage = () => {
     if (project) {
       setEditName(project.name || '');
       setEditDescription(project.description || '');
-      setEditClient(project.client || '');
+      setEditClient(typeof project.client === 'object' ? (project.client._id || project.client.name) : (project.client || ''));
       setEditPriority(project.priority || 'medium');
       setEditStartDate(project.startDate ? new Date(project.startDate).toISOString().split('T')[0] : '');
       setEditEndDate(project.endDate ? new Date(project.endDate).toISOString().split('T')[0] : '');
@@ -300,7 +300,9 @@ export const ProjectDetailPage = () => {
             <h2 className="text-2xl font-bold text-zinc-100 font-display">{project.name}</h2>
           </div>
           {project.client && (
-            <span className="text-xs text-zinc-500 font-semibold mt-1 block">Cliente: {project.client}</span>
+            <span className="text-xs text-zinc-500 font-semibold mt-1 block">
+              Cliente: {typeof project.client === 'object' ? (project.client.name || project.client.company) : project.client}
+            </span>
           )}
         </div>
         <div className="flex items-center gap-2.5">
@@ -590,7 +592,9 @@ export const ProjectDetailPage = () => {
                 <User className="w-4 h-4 text-zinc-500" />
                 <div>
                   <span className="text-[9px] uppercase text-zinc-600 block">Cliente</span>
-                  <span className="text-zinc-300">{project.client || 'Sin cliente asignado'}</span>
+                  <span className="text-zinc-300">
+                    {typeof project.client === 'object' ? (project.client.name || project.client.company) : (project.client || 'Sin cliente asignado')}
+                  </span>
                 </div>
               </div>
               <div className="flex items-center gap-3">
