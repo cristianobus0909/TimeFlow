@@ -1,11 +1,22 @@
 import { z } from 'zod';
 
+const preprocessDate = (val: unknown) => {
+  if (val === '' || val === null || val === undefined) return null;
+  return val;
+};
+
+const preprocessString = (val: unknown) => {
+  if (val === '' || val === null || val === undefined) return null;
+  return val;
+};
+
 export const createTaskSchema = z.object({
-  project: z.string().optional().nullable(),
-  assignedTo: z.string().optional().nullable(),
+  project: z.preprocess(preprocessString, z.string().optional().nullable()),
+  assignedTo: z.preprocess(preprocessString, z.string().optional().nullable()),
   title: z.string().min(1, 'El título de la tarea es obligatorio.'),
+  name: z.string().optional(),
   description: z.string().optional(),
-  category: z.string().min(1, 'La categoría es obligatoria.'),
+  category: z.string().default('General'),
   priority: z.union([z.literal('LOW'), z.literal('MEDIUM'), z.literal('HIGH')]).default('MEDIUM'),
   status: z.union([
     z.literal('active'),
@@ -25,15 +36,16 @@ export const createTaskSchema = z.object({
       completed: z.boolean().default(false),
     })
   ).optional(),
-  dueDate: z.coerce.date().optional().nullable(),
+  dueDate: z.preprocess(preprocessDate, z.coerce.date().optional().nullable()),
   color: z.string().optional(),
   dependencies: z.array(z.string()).optional(),
 });
 
 export const updateTaskSchema = z.object({
-  project: z.string().optional().nullable(),
-  assignedTo: z.string().optional().nullable(),
+  project: z.preprocess(preprocessString, z.string().optional().nullable()),
+  assignedTo: z.preprocess(preprocessString, z.string().optional().nullable()),
   title: z.string().min(1).optional(),
+  name: z.string().optional(),
   description: z.string().optional(),
   category: z.string().min(1).optional(),
   priority: z.union([z.literal('LOW'), z.literal('MEDIUM'), z.literal('HIGH')]).optional(),
@@ -55,7 +67,7 @@ export const updateTaskSchema = z.object({
       completed: z.boolean(),
     })
   ).optional(),
-  dueDate: z.coerce.date().optional().nullable(),
+  dueDate: z.preprocess(preprocessDate, z.coerce.date().optional().nullable()),
   color: z.string().optional(),
   dependencies: z.array(z.string()).optional(),
 });

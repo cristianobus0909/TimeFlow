@@ -83,10 +83,10 @@ export const TasksPage = () => {
     queryFn: () => api.get('/projects'),
   });
 
-  // Fetch Categories List from Database
+  // Fetch Categories List from Database (with fallback)
   const { data: dbCategories = [] } = useQuery({
     queryKey: ['categories'],
-    queryFn: () => api.get('/categories'),
+    queryFn: () => api.get('/categories').catch(() => []),
   });
 
   const [isCustomCategory, setIsCustomCategory] = useState(false);
@@ -199,13 +199,19 @@ export const TasksPage = () => {
   const handleCreateTask = async (values: TaskFormValues) => {
     if (isCustomCategory && values.category) {
       try {
-        await api.post('/categories', { name: values.category });
+        await api.post('/categories', { name: values.category }).catch(() => null);
         queryClient.invalidateQueries({ queryKey: ['categories'] });
       } catch (e) {
         console.warn('Could not persist category to DB:', e);
       }
     }
-    createTaskMutation.mutate(values);
+    const payload: any = {
+      ...values,
+      title: values.name,
+    };
+    if (!payload.project) delete payload.project;
+    if (!payload.dueDate) delete payload.dueDate;
+    createTaskMutation.mutate(payload);
   };
 
   const handleStopTimer = async () => {
