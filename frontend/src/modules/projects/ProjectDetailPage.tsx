@@ -242,9 +242,10 @@ export const ProjectDetailPage = () => {
     setDraggedIndex(null);
   };
 
-  const formatHours = (seconds: number) => {
-    const hrs = Math.floor(seconds / 3600);
-    const mins = Math.floor((seconds % 3600) / 60);
+  const formatHours = (seconds?: number | null) => {
+    const safeSeconds = typeof seconds === 'number' && !isNaN(seconds) && isFinite(seconds) ? Math.max(0, seconds) : 0;
+    const hrs = Math.floor(safeSeconds / 3600);
+    const mins = Math.floor((safeSeconds % 3600) / 60);
     if (hrs === 0) return `${mins}m`;
     return `${hrs}h ${mins}m`;
   };

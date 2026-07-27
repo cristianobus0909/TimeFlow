@@ -82,6 +82,10 @@ export class ProjectService {
       status: data.status as any,
       priority: data.priority as any,
       client: clientObjectId,
+      estimatedDuration: 0,
+      accumulatedDuration: 0,
+      remainingDuration: 0,
+      completionPercentage: 0,
       organization: new Types.ObjectId(orgId),
       createdBy: new Types.ObjectId(userId),
     });

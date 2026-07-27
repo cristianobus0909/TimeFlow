@@ -14,6 +14,10 @@ export interface IProject extends Document, IAuditFields, ISoftDeleteFields {
   startDate?: Date;
   endDate?: Date;
   estimatedCompletion?: Date;
+  estimatedDuration?: number;
+  accumulatedDuration?: number;
+  remainingDuration?: number;
+  completionPercentage?: number;
   tags?: string[];
   color?: string;
   createdAt: Date;
@@ -42,6 +46,10 @@ const ProjectSchema = new Schema<IProject>(
     startDate: { type: Date },
     endDate: { type: Date },
     estimatedCompletion: { type: Date },
+    estimatedDuration: { type: Number, default: 0 },
+    accumulatedDuration: { type: Number, default: 0 },
+    remainingDuration: { type: Number, default: 0 },
+    completionPercentage: { type: Number, default: 0 },
     tags: [{ type: String, trim: true }],
     color: { type: String, trim: true },
     ...auditSchemaDefinition,
