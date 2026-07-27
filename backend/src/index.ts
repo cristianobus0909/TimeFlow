@@ -8,27 +8,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 import rateLimit from 'express-rate-limit';
-
-// Import Routes from Modules
-import authRoutes from '@modules/auth/auth.routes';
-import taskRoutes from '@modules/tasks/task.routes';
-import projectRoutes from '@modules/projects/project.routes';
-import sessionRoutes from '@modules/timer/timer.routes';
-import settingsRoutes from '@modules/settings/settings.routes';
-import billingRoutes from '@modules/billing/billing.routes';
-import analyticsRoutes from '@modules/analytics/analytics.routes';
-import organizationRoutes from '@modules/organizations/organization.routes';
-import clientRoutes from '@modules/clients/client.routes';
-import rateRoutes from '@modules/rates/rate.routes';
-import workSessionRoutes from '@modules/workSessions/work-session.routes';
-import dashboardRoutes from '@modules/dashboard/dashboard.routes';
-import focusRoutes from '@modules/focus/focus.routes';
-import commentRoutes from '@modules/comments/comment.routes';
-import attachmentRoutes from '@modules/attachments/attachment.routes';
-import timelineRoutes from '@modules/timeline/timeline.routes';
-import searchRoutes from '@modules/search/search.routes';
-import financialRoutes from '@modules/financial/financial.routes';
-import aiRoutes from '@modules/ai/ai.routes';
+import apiRouter from './routes';
 
 const app = express();
 const PORT = env.PORT;
@@ -78,7 +58,7 @@ const corsOptions = {
 };
 app.use(cors(corsOptions));
 
-// Rate limiting to prevent brute force
+// General rate limiting to prevent brute force
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 300, // limit each IP to 300 requests per window
@@ -87,6 +67,17 @@ const limiter = rateLimit({
   message: { error: 'Demasiadas peticiones desde esta IP. Inténtelo más tarde.' },
 });
 app.use(limiter);
+
+// Strict rate limiting for Auth routes (brute-force protection)
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 20, // limit each IP to 20 auth attempts per window
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Demasiados intentos de autenticación. Inténtelo en 15 minutos.' },
+});
+app.use('/api/v1/auth/login', authLimiter);
+app.use('/api/v1/auth/register', authLimiter);
 
 // Conditional Body Parser for Stripe Webhook
 app.use((req, res, next) => {
@@ -99,7 +90,7 @@ app.use((req, res, next) => {
 
 app.use(express.urlencoded({ extended: true }));
 
-// API Root Route
+// API Health / Root Route
 app.get('/', (req, res) => {
   res.status(200).json({
     app: 'TimeFlow API',
@@ -109,33 +100,8 @@ app.get('/', (req, res) => {
   });
 });
 
-// Register Routes
-app.use('/api/v1/auth', authRoutes);
-app.use('/api/v1/billing', billingRoutes);
-
-// Apply global authentication and paywall locks for all other business domains
-import { authenticateToken } from '@core/middleware/auth.middleware';
-import { checkPaywall } from '@core/middleware/paywall.middleware';
-app.use(authenticateToken as any);
-app.use(checkPaywall as any);
-
-app.use('/api/v1/tasks', taskRoutes);
-app.use('/api/v1/projects', projectRoutes);
-app.use('/api/v1/sessions', sessionRoutes);
-app.use('/api/v1/settings', settingsRoutes);
-app.use('/api/v1/analytics', analyticsRoutes);
-app.use('/api/v1/organizations', organizationRoutes);
-app.use('/api/v1/clients', clientRoutes);
-app.use('/api/v1/rates', rateRoutes);
-app.use('/api/v1/work-sessions', workSessionRoutes);
-app.use('/api/v1/dashboard', dashboardRoutes);
-app.use('/api/v1/focus', focusRoutes);
-app.use('/api/v1/comments', commentRoutes);
-app.use('/api/v1/attachments', attachmentRoutes);
-app.use('/api/v1/timeline', timelineRoutes);
-app.use('/api/v1/search', searchRoutes);
-app.use('/api/v1/financial', financialRoutes);
-app.use('/api/v1/ai', aiRoutes);
+// Centralized Modular API Router Mounting
+app.use('/api/v1', apiRouter);
 
 // Global Error Handler Middleware
 app.use(errorHandler);

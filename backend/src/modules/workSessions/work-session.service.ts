@@ -47,7 +47,7 @@ export class WorkSessionService {
     if (activeRate) {
       resolvedHourlyRate = activeRate.hourlyRate;
     } else if (data.project) {
-      const project = await Project.findById(data.project);
+      const project = await Project.findOne({ _id: data.project, organization: orgId });
       if (project && project.hourlyRate) {
         resolvedHourlyRate = project.hourlyRate;
       }
@@ -383,7 +383,7 @@ export class WorkSessionService {
     if (activeRate) {
       resolvedHourlyRate = activeRate.hourlyRate;
     } else if (data.project) {
-      const project = await Project.findById(data.project);
+      const project = await Project.findOne({ _id: data.project, organization: orgId });
       if (project && project.hourlyRate) {
         resolvedHourlyRate = project.hourlyRate;
       }
