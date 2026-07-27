@@ -83,6 +83,12 @@ export const TasksPage = () => {
     queryFn: () => api.get('/projects'),
   });
 
+  const [isCustomCategory, setIsCustomCategory] = useState(false);
+
+  const defaultCategories = ['Desarrollo', 'Diseño', 'QA / Pruebas', 'Reunión', 'Planificación', 'Mantenimiento', 'Soporte', 'Gestión'];
+  const existingCategories = Array.from(new Set(tasks.map((t: any) => t.category).filter(Boolean)));
+  const allCategories = Array.from(new Set([...defaultCategories, ...existingCategories]));
+
   const handleDragStart = (e: React.DragEvent, taskId: string) => {
     e.dataTransfer.setData('taskId', taskId);
   };
@@ -110,6 +116,7 @@ export const TasksPage = () => {
     register,
     handleSubmit,
     reset,
+    setValue,
     formState: { errors },
   } = useForm<any>({
     resolver: zodResolver(taskSchema),
@@ -604,12 +611,44 @@ export const TasksPage = () => {
             {...register('description')}
           />
 
-          <Input
-            label="Categoría"
-            placeholder="ej. Desarrollo, QA, Diseño, Reunión..."
-            error={errors.category?.message as string}
-            {...register('category')}
-          />
+          <div className="flex flex-col gap-1.5 text-left">
+            <div className="flex justify-between items-center">
+              <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wide">Categoría *</label>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsCustomCategory(!isCustomCategory);
+                  setValue('category', '');
+                }}
+                className="text-[10px] text-brand-purple hover:underline font-semibold flex items-center gap-0.5 cursor-pointer"
+              >
+                {isCustomCategory ? '← Seleccionar de la lista' : '+ Nueva Categoría'}
+              </button>
+            </div>
+
+            {isCustomCategory ? (
+              <Input
+                placeholder="Escribe el nombre de la nueva categoría..."
+                error={errors.category?.message as string}
+                {...register('category')}
+              />
+            ) : (
+              <select
+                {...register('category')}
+                className="w-full bg-zinc-900 border border-zinc-850 text-zinc-100 rounded-xl px-4 py-3 text-xs outline-none focus:border-zinc-700"
+              >
+                <option value="">-- Seleccionar Categoría --</option>
+                {allCategories.map((cat: any) => (
+                  <option key={cat} value={cat}>
+                    {cat}
+                  </option>
+                ))}
+              </select>
+            )}
+            {errors.category && !isCustomCategory && (
+              <span className="text-xs text-rose-500">{errors.category.message as string}</span>
+            )}
+          </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="flex flex-col gap-1.5 text-left">
