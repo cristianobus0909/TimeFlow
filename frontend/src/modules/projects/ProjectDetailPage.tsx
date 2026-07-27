@@ -38,6 +38,12 @@ export const ProjectDetailPage = () => {
 
   // Edit Project States
   const [editName, setEditName] = useState('');
+
+  // Fetch Clients List for Project Edit
+  const { data: clients = [] } = useQuery({
+    queryKey: ['clients'],
+    queryFn: () => api.get('/clients'),
+  });
   const [editDescription, setEditDescription] = useState('');
   const [editClient, setEditClient] = useState('');
   const [editPriority, setEditPriority] = useState('medium');
@@ -712,12 +718,21 @@ export const ProjectDetailPage = () => {
           />
 
           <div className="grid grid-cols-2 gap-4">
-            <Input
-              label="Cliente"
-              placeholder="ej. ACME Corp"
-              value={editClient}
-              onChange={(e) => setEditClient(e.target.value)}
-            />
+            <div className="flex flex-col gap-1.5 text-left">
+              <span className="text-xs font-semibold text-zinc-400 uppercase">Cliente</span>
+              <select
+                className="bg-zinc-900 border border-zinc-800 focus:border-brand-purple text-zinc-100 rounded-xl px-3 py-2 text-xs outline-none w-full"
+                value={editClient}
+                onChange={(e) => setEditClient(e.target.value)}
+              >
+                <option value="">-- Sin Cliente --</option>
+                {clients.map((c: any) => (
+                  <option key={c._id} value={c.name}>
+                    {c.name} {c.company ? `(${c.company})` : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
 
             <div className="flex flex-col gap-1.5 text-left">
               <span className="text-xs font-semibold text-zinc-400 uppercase">Prioridad</span>

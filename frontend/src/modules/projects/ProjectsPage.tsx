@@ -33,16 +33,29 @@ export const ProjectsPage = () => {
   const { user } = authStore();
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  const [isAddClientModalOpen, setIsAddClientModalOpen] = useState(false);
+  const [quickClientName, setQuickClientName] = useState('');
+  const [quickClientCompany, setQuickClientCompany] = useState('');
+  const [quickClientEmail, setQuickClientEmail] = useState('');
+  const [createClientLoading, setCreateClientLoading] = useState(false);
+
   // Fetch Projects List
   const { data: projects = [], isLoading } = useQuery({
     queryKey: ['projects'],
     queryFn: () => api.get('/projects'),
   });
 
+  // Fetch Clients List
+  const { data: clients = [] } = useQuery({
+    queryKey: ['clients'],
+    queryFn: () => api.get('/clients'),
+  });
+
   const {
     register,
     handleSubmit,
     reset,
+    setValue,
     formState: { errors },
   } = useForm<any>({
     resolver: zodResolver(projectSchema),
@@ -72,6 +85,35 @@ export const ProjectsPage = () => {
 
   const handleCreateProject = (values: ProjectFormValues) => {
     createProjectMutation.mutate(values);
+  };
+
+  const handleCreateQuickClient = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!quickClientName.trim()) {
+      showToast('El nombre del cliente es obligatorio', 'error');
+      return;
+    }
+
+    setCreateClientLoading(true);
+    try {
+      const created = await api.post('/clients', {
+        name: quickClientName.trim(),
+        company: quickClientCompany.trim() || undefined,
+        email: quickClientEmail.trim() || undefined,
+      });
+
+      await queryClient.invalidateQueries({ queryKey: ['clients'] });
+      setValue('client', created.name || quickClientName.trim());
+      showToast(`Cliente "${quickClientName.trim()}" creado exitosamente.`);
+      setQuickClientName('');
+      setQuickClientCompany('');
+      setQuickClientEmail('');
+      setIsAddClientModalOpen(false);
+    } catch (err: any) {
+      showToast(err.message || 'Error al crear el cliente.', 'error');
+    } finally {
+      setCreateClientLoading(false);
+    }
   };
 
   const formatHours = (seconds: number) => {
@@ -246,12 +288,29 @@ export const ProjectsPage = () => {
           />
 
           <div className="grid grid-cols-2 gap-4">
-            <Input
-              label="Cliente"
-              placeholder="ej. ACME Corp"
-              error={errors.client?.message as string}
-              {...register('client')}
-            />
+            <div className="flex flex-col gap-1.5">
+              <div className="flex justify-between items-center">
+                <label className="text-xs font-semibold text-zinc-400 uppercase">Cliente</label>
+                <button
+                  type="button"
+                  onClick={() => setIsAddClientModalOpen(true)}
+                  className="text-[10px] text-brand-purple hover:underline font-semibold flex items-center gap-0.5 cursor-pointer"
+                >
+                  <Plus className="w-3 h-3" /> Nuevo Cliente
+                </button>
+              </div>
+              <select
+                className="bg-zinc-900 border border-zinc-800 focus:border-brand-purple text-zinc-100 rounded-xl px-3 py-2 text-sm outline-none placeholder:text-zinc-600"
+                {...register('client')}
+              >
+                <option value="">-- Seleccionar Cliente --</option>
+                {clients.map((c: any) => (
+                  <option key={c._id} value={c.name}>
+                    {c.name} {c.company ? `(${c.company})` : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
 
             <div className="flex flex-col gap-1.5">
               <label className="text-xs font-semibold text-zinc-400 uppercase">Prioridad</label>
@@ -306,6 +365,39 @@ export const ProjectsPage = () => {
             </Button>
             <Button type="submit" isLoading={createProjectMutation.isPending}>
               Guardar Proyecto
+            </Button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Quick Add Client Modal */}
+      <Modal isOpen={isAddClientModalOpen} onClose={() => setIsAddClientModalOpen(false)} title="Crear Cliente Rápido">
+        <form onSubmit={handleCreateQuickClient} className="flex flex-col gap-4 text-left">
+          <Input
+            label="Nombre del Cliente *"
+            placeholder="ej. Juan Pérez, María González..."
+            value={quickClientName}
+            onChange={(e) => setQuickClientName(e.target.value)}
+          />
+          <Input
+            label="Empresa / Organización"
+            placeholder="ej. ACME Corp, Studio Design..."
+            value={quickClientCompany}
+            onChange={(e) => setQuickClientCompany(e.target.value)}
+          />
+          <Input
+            label="Correo Electrónico (Opcional)"
+            type="email"
+            placeholder="contacto@empresa.com"
+            value={quickClientEmail}
+            onChange={(e) => setQuickClientEmail(e.target.value)}
+          />
+          <div className="flex justify-end gap-3 mt-2">
+            <Button type="button" variant="ghost" onClick={() => setIsAddClientModalOpen(false)}>
+              Cancelar
+            </Button>
+            <Button type="submit" isLoading={createClientLoading}>
+              Guardar y Seleccionar
             </Button>
           </div>
         </form>
