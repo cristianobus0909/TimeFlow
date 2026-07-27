@@ -277,6 +277,7 @@ export const createMercadoPagoCheckout = async (req: AuthenticatedRequest, res: 
         failure: `${currentFrontendUrl}/pricing?billing_canceled=true`,
         pending: `${currentFrontendUrl}/dashboard?billing_pending=true`,
       },
+      external_reference: `${user._id}_${plan}_${Date.now()}`,
       notification_url: `${backendUrl}/api/v1/billing/mercadopago/webhook?userId=${user._id}&plan=${plan}`,
     };
 
@@ -311,29 +312,40 @@ export const createMercadoPagoCheckout = async (req: AuthenticatedRequest, res: 
 
 export const handleMercadoPagoWebhook = async (req: Request, res: Response): Promise<void> => {
   try {
+    const currentMpToken = process.env.MERCADOPAGO_ACCESS_TOKEN || '';
     const { userId, plan } = req.query;
     const body = req.body;
+
+    console.log('🔔 Webhook Mercado Pago recibido:', { query: req.query, body });
 
     const paymentId = body.data?.id || body.id;
     const type = body.type || body.topic;
 
-    if (type === 'payment' && paymentId && userId && plan) {
+    if (type === 'payment' && paymentId) {
       // Verify payment with Mercado Pago API using global fetch
       const paymentResponse = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
         headers: {
-          Authorization: `Bearer ${mpToken}`,
+          Authorization: `Bearer ${currentMpToken}`,
         },
       });
 
       const paymentData: any = await paymentResponse.json();
 
       if (paymentResponse.ok && paymentData.status === 'approved') {
-        await User.findByIdAndUpdate(userId, {
-          subscriptionPlan: plan as string,
-          subscriptionStatus: 'active',
-          subscriptionPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
-        });
-        console.log(`✅ Upgrade del usuario ${userId} al plan ${plan} realizado mediante Mercado Pago.`);
+        const extRef = paymentData.external_reference || '';
+        const [refUserId, refPlan] = extRef.split('_');
+
+        const targetUserId = (userId as string) || refUserId;
+        const targetPlan = (plan as string) || refPlan || 'pro';
+
+        if (targetUserId) {
+          await User.findByIdAndUpdate(targetUserId, {
+            subscriptionPlan: targetPlan,
+            subscriptionStatus: 'active',
+            subscriptionPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
+          });
+          console.log(`✅ Upgrade del usuario ${targetUserId} al plan ${targetPlan} realizado mediante Mercado Pago.`);
+        }
       }
     }
     res.status(200).json({ received: true });
