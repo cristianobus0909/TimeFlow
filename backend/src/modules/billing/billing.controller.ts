@@ -237,7 +237,9 @@ export const createMercadoPagoCheckout = async (req: AuthenticatedRequest, res: 
       return;
     }
 
-    const isMpMock = !mpToken || mpToken.includes('your_mercadopago_access_token_here');
+    const currentMpToken = process.env.MERCADOPAGO_ACCESS_TOKEN || '';
+    const currentFrontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const isMpMock = !currentMpToken || currentMpToken.includes('your_mercadopago_access_token_here');
 
     // MERCADO PAGO MOCK UPGRADE
     if (isMpMock) {
@@ -247,7 +249,7 @@ export const createMercadoPagoCheckout = async (req: AuthenticatedRequest, res: 
       await user.save();
 
       res.status(200).json({
-        url: `${frontendUrl}/dashboard?billing_success=true&mock=true&gateway=mercadopago&plan=${plan}`,
+        url: `${currentFrontendUrl}/dashboard?billing_success=true&mock=true&gateway=mercadopago&plan=${plan}`,
         message: 'Upgrade simulado con éxito (Mercado Pago Mock).',
       });
       return;
@@ -257,7 +259,7 @@ export const createMercadoPagoCheckout = async (req: AuthenticatedRequest, res: 
 
     // Create Preference using Node.js global fetch
     const backendUrl = process.env.BACKEND_URL || 'https://timeflow-backend.onrender.com';
-    const preference = {
+    const preference: any = {
       items: [
         {
           title: `TimeFlow ${plan.toUpperCase()}`,
@@ -271,18 +273,22 @@ export const createMercadoPagoCheckout = async (req: AuthenticatedRequest, res: 
         name: user.name,
       },
       back_urls: {
-        success: `${frontendUrl}/dashboard?billing_success=true&gateway=mercadopago&plan=${plan}`,
-        failure: `${frontendUrl}/pricing?billing_canceled=true`,
-        pending: `${frontendUrl}/dashboard?billing_pending=true`,
+        success: `${currentFrontendUrl}/dashboard?billing_success=true&gateway=mercadopago&plan=${plan}`,
+        failure: `${currentFrontendUrl}/pricing?billing_canceled=true`,
+        pending: `${currentFrontendUrl}/dashboard?billing_pending=true`,
       },
-      auto_return: 'approved',
       notification_url: `${backendUrl}/api/v1/billing/mercadopago/webhook?userId=${user._id}&plan=${plan}`,
     };
+
+    // Mercado Pago only permits auto_return if back_urls.success uses HTTPS
+    if (currentFrontendUrl.startsWith('https')) {
+      preference.auto_return = 'approved';
+    }
 
     const response = await fetch('https://api.mercadopago.com/checkout/preferences', {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${mpToken}`,
+        Authorization: `Bearer ${currentMpToken}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(preference),
@@ -290,10 +296,11 @@ export const createMercadoPagoCheckout = async (req: AuthenticatedRequest, res: 
 
     const data: any = await response.json();
     if (!response.ok) {
-      throw new Error(data.message || 'Error creating preference at Mercado Pago');
+      console.error('❌ Error de Mercado Pago API:', data);
+      throw new Error(data.message || data.error || 'Error al crear preferencia en Mercado Pago');
     }
 
-    const isSandbox = mpToken.startsWith('TEST-');
+    const isSandbox = currentMpToken.startsWith('TEST-');
     const redirectUrl = isSandbox ? data.sandbox_init_point : data.init_point;
     res.status(200).json({ url: redirectUrl || data.init_point });
   } catch (error: any) {
