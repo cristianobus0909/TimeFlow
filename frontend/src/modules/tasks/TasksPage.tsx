@@ -83,11 +83,18 @@ export const TasksPage = () => {
     queryFn: () => api.get('/projects'),
   });
 
+  // Fetch Categories List from Database
+  const { data: dbCategories = [] } = useQuery({
+    queryKey: ['categories'],
+    queryFn: () => api.get('/categories'),
+  });
+
   const [isCustomCategory, setIsCustomCategory] = useState(false);
 
   const defaultCategories = ['Desarrollo', 'Diseño', 'QA / Pruebas', 'Reunión', 'Planificación', 'Mantenimiento', 'Soporte', 'Gestión'];
-  const existingCategories = Array.from(new Set(tasks.map((t: any) => t.category).filter(Boolean)));
-  const allCategories = Array.from(new Set([...defaultCategories, ...existingCategories]));
+  const dbCategoryNames = (dbCategories as any[]).map((c) => c.name).filter(Boolean);
+  const taskCategoryNames = (tasks as any[]).map((t) => t.category).filter(Boolean);
+  const allCategories = Array.from(new Set([...defaultCategories, ...dbCategoryNames, ...taskCategoryNames]));
 
   const handleDragStart = (e: React.DragEvent, taskId: string) => {
     e.dataTransfer.setData('taskId', taskId);
@@ -189,7 +196,15 @@ export const TasksPage = () => {
     },
   });
 
-  const handleCreateTask = (values: TaskFormValues) => {
+  const handleCreateTask = async (values: TaskFormValues) => {
+    if (isCustomCategory && values.category) {
+      try {
+        await api.post('/categories', { name: values.category });
+        queryClient.invalidateQueries({ queryKey: ['categories'] });
+      } catch (e) {
+        console.warn('Could not persist category to DB:', e);
+      }
+    }
     createTaskMutation.mutate(values);
   };
 
