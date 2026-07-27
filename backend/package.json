@@ -12,6 +12,12 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/cookie-parser": "^1.4.10",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^26.1.1",
     "bcryptjs": "^3.0.3",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",
@@ -23,19 +29,13 @@
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^8.24.1",
     "stripe": "^22.3.1",
+    "tsc-alias": "^1.9.1",
+    "tsx": "^4.23.0",
+    "typescript": "^7.0.2",
     "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@types/bcryptjs": "^2.4.6",
-    "@types/cookie-parser": "^1.4.10",
-    "@types/cors": "^2.8.19",
-    "@types/express": "^5.0.6",
-    "@types/jsonwebtoken": "^9.0.10",
-    "@types/node": "^26.1.1",
     "nodemon": "^3.1.14",
-    "ts-node": "^10.9.2",
-    "tsc-alias": "^1.9.1",
-    "tsx": "^4.23.0",
-    "typescript": "^7.0.2"
+    "ts-node": "^10.9.2"
   }
 }

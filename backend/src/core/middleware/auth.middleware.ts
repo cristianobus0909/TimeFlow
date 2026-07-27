@@ -2,7 +2,12 @@ import { Request, Response, NextFunction } from 'express';
 import { verifyAccessToken } from '@shared/utils/jwt';
 import { User } from '@modules/users/user.model';
 
-export interface AuthenticatedRequest extends Request {
+export interface AuthenticatedRequest<
+  P = any,
+  ResBody = any,
+  ReqBody = any,
+  ReqQuery = any
+> extends Request<P, ResBody, ReqBody, ReqQuery> {
   user?: {
     userId: string;
     organizationId?: string;
