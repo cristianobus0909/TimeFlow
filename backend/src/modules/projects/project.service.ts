@@ -41,10 +41,27 @@ export class ProjectService {
   }
 
   public async createProject(data: CreateProjectInput, orgId: string, userId: string): Promise<IProject> {
-    if (data.client) {
-      const client = await Client.findOne({ _id: data.client, organization: orgId });
-      if (!client) {
-        throw new ValidationError('El cliente especificado no pertenece a su organización.');
+    let clientObjectId: Types.ObjectId | undefined = undefined;
+
+    if (data.client && data.client.trim()) {
+      const rawClient = data.client.trim();
+      if (Types.ObjectId.isValid(rawClient)) {
+        const found = await Client.findOne({ _id: rawClient, organization: orgId });
+        if (found) {
+          clientObjectId = found._id as Types.ObjectId;
+        }
+      }
+
+      if (!clientObjectId) {
+        let foundByName = await Client.findOne({ name: rawClient, organization: orgId });
+        if (!foundByName) {
+          foundByName = await Client.create({
+            name: rawClient,
+            organization: new Types.ObjectId(orgId),
+            createdBy: new Types.ObjectId(userId),
+          });
+        }
+        clientObjectId = foundByName._id as Types.ObjectId;
       }
     }
 
@@ -64,7 +81,7 @@ export class ProjectService {
       ...data,
       status: data.status as any,
       priority: data.priority as any,
-      client: data.client ? new Types.ObjectId(data.client) : undefined,
+      client: clientObjectId,
       organization: new Types.ObjectId(orgId),
       createdBy: new Types.ObjectId(userId),
     });
@@ -81,16 +98,28 @@ export class ProjectService {
       throw new NotFoundError('Proyecto no encontrado.');
     }
 
-    if (data.client) {
-      const client = await Client.findOne({ _id: data.client, organization: orgId });
-      if (!client) {
-        throw new ValidationError('El cliente especificado no pertenece a su organización.');
-      }
-    }
-
     const updateData: any = { ...data };
-    if (data.client) {
-      updateData.client = new Types.ObjectId(data.client);
+    if (data.client && data.client.trim()) {
+      const rawClient = data.client.trim();
+      let resolvedId: Types.ObjectId | undefined = undefined;
+
+      if (Types.ObjectId.isValid(rawClient)) {
+        const found = await Client.findOne({ _id: rawClient, organization: orgId });
+        if (found) resolvedId = found._id as Types.ObjectId;
+      }
+
+      if (!resolvedId) {
+        let foundByName = await Client.findOne({ name: rawClient, organization: orgId });
+        if (!foundByName) {
+          foundByName = await Client.create({
+            name: rawClient,
+            organization: new Types.ObjectId(orgId),
+            createdBy: new Types.ObjectId(userId),
+          });
+        }
+        resolvedId = foundByName._id as Types.ObjectId;
+      }
+      updateData.client = resolvedId;
     }
 
     const updated = await this.repository.update(id, orgId, updateData, userId);
