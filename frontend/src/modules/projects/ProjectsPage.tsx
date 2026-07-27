@@ -84,7 +84,12 @@ export const ProjectsPage = () => {
   });
 
   const handleCreateProject = (values: ProjectFormValues) => {
-    createProjectMutation.mutate(values);
+    const payload: any = { ...values };
+    if (!payload.startDate) delete payload.startDate;
+    if (!payload.endDate) delete payload.endDate;
+    if (!payload.client) delete payload.client;
+    if (!payload.description) delete payload.description;
+    createProjectMutation.mutate(payload);
   };
 
   const handleCreateQuickClient = async (e: React.FormEvent) => {
@@ -318,9 +323,9 @@ export const ProjectsPage = () => {
                 className="bg-zinc-900 border border-zinc-800 focus:border-brand-purple text-zinc-100 rounded-xl px-3 py-2 text-sm outline-none placeholder:text-zinc-600"
                 {...register('priority')}
               >
-                <option value="low">Baja</option>
-                <option value="medium">Media</option>
-                <option value="high">Alta</option>
+                <option value="LOW">Baja</option>
+                <option value="MEDIUM">Media</option>
+                <option value="HIGH">Alta</option>
               </select>
             </div>
           </div>
