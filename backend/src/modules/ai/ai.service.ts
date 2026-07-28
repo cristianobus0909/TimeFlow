@@ -33,23 +33,24 @@ export class AIService {
     const todayHours = todaySessions.reduce((acc, s) => acc + (s.duration || 0), 0) / 3600;
 
     const contextPrompt = `
-      Eres el Asistente Ejecutivo & Business Coach de TimeFlow. Habla en un tono sumamente natural, amigable, cercano y motivador en español.
-      Genera un Daily Brief fluido y profesional con los siguientes datos del usuario para hoy:
-      - Tareas pendientes: ${pendingTasksCount}
-      - Proyectos activos: ${activeProjectsCount}
-      - Facturas pendientes por cobrar: ${overdueInvoicesCount}
-      - Horas trabajadas hoy: ${todayHours.toFixed(1)} horas.
+      Eres el Asistente Ejecutivo y Business Coach de TimeFlow. Escribe en español de forma totalmente limpia, profesional y directa.
+      No uses emojis, no uses asteriscos, no uses comillas y no uses paréntesis.
+      Genera un resumen diario con los siguientes datos:
+      Tareas pendientes: ${pendingTasksCount}
+      Proyectos activos: ${activeProjectsCount}
+      Facturas pendientes por cobrar: ${overdueInvoicesCount}
+      Horas trabajadas hoy: ${todayHours.toFixed(1)} horas
     `;
 
     return this.callLLM(orgId, userId, contextPrompt, 'DAILY_BRIEF', `
-¡Buenos días! 👋 Te preparé el resumen de hoy para arrancar con todo:
+Hola. Este es tu resumen ejecutivo para el día de hoy:
 
-• 📝 Tienes **${pendingTasksCount} tareas** aguardando en tu bandeja.
-• 🚀 **${activeProjectsCount} proyectos** en marcha activa.
-• ⚠️ **${overdueInvoicesCount} facturas** pendientes de cobro que valdría la pena revisar hoy.
-• ⏱️ Llevas **${todayHours.toFixed(1)} horas** de enfoque registradas hoy.
+• Tareas pendientes: ${pendingTasksCount}
+• Proyectos activos: ${activeProjectsCount}
+• Facturas pendientes por cobrar: ${overdueInvoicesCount}
+• Horas registradas hoy: ${todayHours.toFixed(1)} horas
 
-*Mi sugerencia para hoy:* Concéntrate en resolver los pendientes principales de tus proyectos prioritarios para mantener un flujo de entregas ágil esta semana. ¡Mucho éxito! 🚀
+Te sugiero avanzar primero con los pendientes de mayor impacto en tus proyectos principales.
     `);
   }
 
@@ -82,7 +83,7 @@ export class AIService {
         insights.push({
           type: 'BUSINESS_COACH',
           title: 'Riesgo de Concentración de Clientes',
-          content: `El cliente **${info.name}** representa el **${Math.round(percentage)}%** de tus ingresos totales facturados. Te sugiero diversificar tu cartera para mitigar riesgos comerciales.`,
+          content: `El cliente ${info.name} representa el ${Math.round(percentage)} por ciento de tus ingresos totales facturados. Te sugiero diversificar tu cartera para reducir riesgos comerciales.`,
           severity: 'YELLOW',
         });
       }
@@ -99,7 +100,7 @@ export class AIService {
           insights.push({
             type: 'PROJECT_RISK',
             title: `Desvío de Presupuesto en ${p.name}`,
-            content: `El tiempo acumulado de trabajo real (${accumulatedHours.toFixed(1)}h) superó la estimación inicial de presupuesto (${budgetHours}h) en tu proyecto.`,
+            content: `El tiempo acumulado de trabajo real de ${accumulatedHours.toFixed(1)} horas superó el presupuesto inicial de ${budgetHours} horas en este proyecto.`,
             severity: 'RED',
           });
         }
@@ -117,7 +118,7 @@ export class AIService {
       insights.push({
         type: 'BUSINESS_COACH',
         title: 'Sugerencia de Tarifa',
-        content: 'Considerando tu nivel de desempeño promedio de esta semana, podrías aplicar un ajuste del 10% al valor hora en nuevos proyectos.',
+        content: 'Considerando tu rendimiento de esta semana, podrías evaluar un ajuste favorable en el valor hora para nuevos proyectos.',
         severity: 'GREEN',
       });
     }
@@ -132,7 +133,7 @@ export class AIService {
 
     // 1. Gratitude & Politeness
     if (q.includes('gracias') || q.includes('genial') || q.includes('buenisimo') || q.includes('excelente') || q.includes('ok') || q.includes('perfecto')) {
-      return `¡Con mucho gusto! 😊 Estoy aquí para lo que necesites en tu día a día. ¡A romperla hoy con tus objetivos! 🚀`;
+      return `Con gusto. Estoy a tu disposición para ayudarte con la gestión de tu negocio.`;
     }
 
     // 2. Greetings & Conversational Welcome
@@ -149,16 +150,16 @@ export class AIService {
     ) {
       const pendingTasksCount = await Task.countDocuments({ organization: orgObjectId, status: { $ne: 'DONE' } });
       const activeProjectsCount = await Project.countDocuments({ organization: orgObjectId, status: 'ACTIVE' });
-      return `¡Hola! Qué gusto saludarte. 👋 Soy tu **Asistente Ejecutivo & Business Coach** en TimeFlow.
+      return `Hola. Soy tu Asistente Ejecutivo en TimeFlow.
 
-Actualmente en tu panel tienes **${pendingTasksCount} tareas pendientes** y **${activeProjectsCount} proyectos activos**.
+Actualmente tienes ${pendingTasksCount} tareas pendientes y ${activeProjectsCount} proyectos activos.
 
-Dime, ¿en qué te gustaría enfocarte hoy? Puedes preguntarme directamente:
-• 📊 *"¿Cómo vienen mis ingresos este mes?"*
-• ⏱️ *"¿Cuántas horas llevo trabajadas?"*
-• 📝 *"¿Qué tareas tengo pendientes hoy?"*
-• 🏢 *"¿Qué clientes tengo registrados?"*
-• 🚀 *"¿Cuáles son mis proyectos activos?"*`;
+Puedes consultarme sobre:
+• El estado de tu facturación e ingresos
+• Tus horas trabajadas y registros de tiempo
+• Las tareas pendientes por resolver
+• La lista de tus clientes y empresas
+• El estado general de tus proyectos`;
     }
 
     // 3. Invoices & Revenue matching
@@ -169,17 +170,22 @@ Dime, ¿en qué te gustaría enfocarte hoy? Puedes preguntarme directamente:
       const totalPending = pendingInvoices.reduce((acc, inv) => acc + inv.total, 0);
 
       if (totalPaid === 0 && totalPending === 0) {
-        return `Estuve revisando tus registros contables y actualmente no tienes facturas generadas. Puedes crear tu primera factura desde el módulo de **Facturación**. 🧾`;
+        return `Revisé tus registros contables y por el momento no tienes facturas generadas. Puedes emitir una desde la sección de Facturación.`;
       }
 
-      return `¡Aquí tienes el panorama financiero! 📊\n\n• **Cobrado hasta ahora:** $${totalPaid.toFixed(2)} USD (${paidInvoices.length} facturas pagadas)\n• **Pendiente por cobrar:** $${totalPending.toFixed(2)} USD (${pendingInvoices.length} facturas por cobrar)\n\n¡Buen trabajo manteniendo tus finanzas al día! 💵`;
+      return `Resumen financiero:
+
+• Total cobrado: ${totalPaid.toFixed(2)} USD en ${paidInvoices.length} facturas pagadas
+• Pendiente de cobro: ${totalPending.toFixed(2)} USD en ${pendingInvoices.length} facturas por cobrar`;
     }
 
     // 4. Tracked Time queries
     if (q.includes('hora') || q.includes('tiempo') || q.includes('trabaj') || q.includes('sesion') || q.includes('minuto')) {
       const sessions = await WorkSession.find({ organization: orgObjectId, status: 'COMPLETED' });
       const totalHours = sessions.reduce((acc, s) => acc + (s.duration || 0), 0) / 3600;
-      return `⏱️ **Registro de Tiempo:**\n\nLlevas acumuladas **${totalHours.toFixed(1)} horas** de trabajo enfocado a lo largo de **${sessions.length} sesiones** registradas en TimeFlow.\n\nUn consejo cercano: recuerda tomar pausas cortas entre bloques intensos para mantener tu claridad mental durante el día. 💡`;
+      return `Registro de tiempo:
+
+Has acumulado un total de ${totalHours.toFixed(1)} horas de trabajo registradas en ${sessions.length} sesiones completadas.`;
     }
 
     // 5. Tasks & To-dos matching
@@ -187,10 +193,12 @@ Dime, ¿en qué te gustaría enfocarte hoy? Puedes preguntarme directamente:
       const pendingTasks = await Task.find({ organization: orgObjectId, status: { $ne: 'DONE' } }).limit(5);
       const totalPending = await Task.countDocuments({ organization: orgObjectId, status: { $ne: 'DONE' } });
       if (pendingTasks.length === 0) {
-        return `🎉 ¡Excelente noticia! No tienes tareas pendientes registradas en este momento. Es una buena oportunidad para planificar tus próximos objetivos o tomar un descanso.`;
+        return `No tienes tareas pendientes en este momento. Tu lista de trabajo está al día.`;
       }
-      const taskList = pendingTasks.map(t => `• **${t.title}** (Prioridad: ${t.priority || 'MEDIUM'})`).join('\n');
-      return `📝 Eché un vistazo a tu lista y tienes **${totalPending} tareas pendientes**. Aquí te destaco las principales:\n\n${taskList}\n\n¿Quieres que prioricemos alguna en particular para hoy?`;
+      const taskList = pendingTasks.map(t => `• ${t.title}`).join('\n');
+      return `Tienes ${totalPending} tareas pendientes. Las principales son:
+
+${taskList}`;
     }
 
     // 6. Clients matching
@@ -198,18 +206,22 @@ Dime, ¿en qué te gustaría enfocarte hoy? Puedes preguntarme directamente:
       const clients = await Client.find({ organization: orgObjectId, isDeleted: false }).limit(5);
       const totalClients = await Client.countDocuments({ organization: orgObjectId, isDeleted: false });
       if (clients.length === 0) {
-        return `🏢 Aún no tienes clientes registrados. Puedes agregar a tu primer cliente desde el módulo de **Clientes**.`;
+        return `No tienes clientes registrados aún. Puedes agregar uno desde el módulo de Clientes.`;
       }
-      const clientList = clients.map(c => `• **${c.name}** ${c.company ? `(${c.company})` : ''}`).join('\n');
-      return `🏢 Actualmente tienes **${totalClients} clientes** registrados en tu sistema:\n\n${clientList}\n\nSi necesitas ajustar sus tarifas por hora o generar presupuestos, me avisas.`;
+      const clientList = clients.map(c => `• ${c.name}`).join('\n');
+      return `Tienes ${totalClients} clientes registrados en tu sistema:
+
+${clientList}`;
     }
 
     // 7. Projects matching
     if (q.includes('proyect')) {
       const projectsCount = await Project.countDocuments({ organization: orgObjectId, isDeleted: false });
       const projects = await Project.find({ organization: orgObjectId, isDeleted: false }).limit(5);
-      const names = projects.map(p => `• **${p.name}** [Estado: ${p.status}]`).join('\n');
-      return `🚀 Tienes **${projectsCount} proyectos** registrados en tu tablero:\n\n${names}\n\n¿Quieres revisar el avance o la estimación de horas de alguno de ellos?`;
+      const names = projects.map(p => `• ${p.name}`).join('\n');
+      return `Tienes ${projectsCount} proyectos en tu panel:
+
+${names}`;
     }
 
     // 8. General Executive Summary
@@ -222,14 +234,14 @@ Dime, ¿en qué te gustaría enfocarte hoy? Puedes preguntarme directamente:
     const activeProjectsCount = await Project.countDocuments({ organization: orgObjectId, status: 'ACTIVE' });
     
     const prompt = `
-      Eres el Asistente Ejecutivo e Inteligencia de Negocios de TimeFlow. Tu tono es sumamente natural, amigable, cercano y profesional en español.
-      El usuario te pregunta: "${query}"
-      Contexto de su cuenta: tiene ${pendingTasksCount} tareas pendientes y ${activeProjectsCount} proyectos activos.
-      Responde de forma personalizada, conversacional y fluida sin sonar robotizado ni acartonado.
+      Eres el Asistente Ejecutivo y Business Coach de TimeFlow. Escribe en español de forma totalmente limpia, profesional y directa.
+      No uses emojis, no uses asteriscos, no uses comillas y no uses paréntesis.
+      El usuario pregunta: ${query}
+      Contexto: tiene ${pendingTasksCount} tareas pendientes y ${activeProjectsCount} proyectos activos.
     `;
 
     return this.callLLM(orgId, userId, prompt, 'CHAT_SEARCH', `
-¡Entendido! Sobre tu consulta ("${query}"): Actualmente cuentas con **${pendingTasksCount} tareas pendientes** y **${activeProjectsCount} proyectos activos** en tu panel. Un gran hábito para mantener el ritmo es dividir tu jornada en bloques de 45 minutos de trabajo enfocado sin distracciones. ¿Te gustaría revisar tus tareas o proyectos para arrancar?
+Sobre tu consulta: Actualmente tienes ${pendingTasksCount} tareas pendientes y ${activeProjectsCount} proyectos activos en tu panel. Te sugiero organizar la jornada en bloques de trabajo enfocado sin distracciones para avanzar en tus entregas.
     `);
   }
 
@@ -264,8 +276,10 @@ Dime, ¿en qué te gustaría enfocarte hoy? Puedes preguntarme directamente:
           const json = (await response.json()) as any;
           const reply = json.candidates?.[0]?.content?.parts?.[0]?.text;
           if (reply) {
+            // Clean up any bold asterisks, quotes, emojis or parentheses if returned by LLM
+            const cleanReply = reply.replace(/[\*\"\'\(\)]/g, '').trim();
             await this.logAICost(orgId, userId, 'GEMINI', 'gemini-1.5-flash', 150, 200, 0.0001, action);
-            return reply;
+            return cleanReply;
           }
         }
       } else if (process.env.OPENAI_API_KEY) {
@@ -287,8 +301,9 @@ Dime, ¿en qué te gustaría enfocarte hoy? Puedes preguntarme directamente:
           const json = (await response.json()) as any;
           const reply = json.choices?.[0]?.message?.content;
           if (reply) {
+            const cleanReply = reply.replace(/[\*\"\'\(\)]/g, '').trim();
             await this.logAICost(orgId, userId, 'OPENAI', 'gpt-4o-mini', 200, 250, 0.0002, action);
-            return reply;
+            return cleanReply;
           }
         }
       }
