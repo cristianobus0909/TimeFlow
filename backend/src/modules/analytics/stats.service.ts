@@ -9,9 +9,16 @@ export class StatsService {
    */
   public static async recalculateTaskStats(taskId: string): Promise<void> {
     try {
-      // Get all completed sessions for this task, ordered from oldest to newest
+      const taskObjectId = Types.ObjectId.isValid(taskId) ? new Types.ObjectId(taskId) : taskId;
+
+      // Get all completed sessions for this task, supporting both ObjectId and string formats
       const sessions = await WorkSession.find({
-        task: new Types.ObjectId(taskId),
+        $or: [
+          { task: taskObjectId },
+          { task: taskId },
+          { taskId: taskObjectId },
+          { taskId: taskId },
+        ],
         status: 'COMPLETED',
       }).sort({ createdAt: 1 });
 
@@ -23,6 +30,8 @@ export class StatsService {
           maxDuration: 0,
           totalDuration: 0,
           executionCount: 0,
+          sessionsCount: 0,
+          confidenceLevel: 'low',
         });
         return;
       }
@@ -33,12 +42,15 @@ export class StatsService {
       const durations: number[] = [];
 
       sessions.forEach((session: IWorkSession) => {
-        const d = session.duration || 0;
+        const d = session.effectiveDuration || session.duration || 0;
         durations.push(d);
         totalDuration += d;
         if (d < minDuration) minDuration = d;
         if (d > maxDuration) maxDuration = d;
       });
+
+      if (minDuration === Infinity) minDuration = 0;
+      if (maxDuration === -Infinity) maxDuration = 0;
 
       // Calculate Weighted Average: w_i = i^1.5 where i goes from 1 to count
       let sumOfWeights = 0;
@@ -51,7 +63,8 @@ export class StatsService {
         sumOfWeights += weight;
       });
 
-      const averageDuration = Math.round(weightedSum / sumOfWeights);
+      const averageDuration = sumOfWeights > 0 ? Math.round(weightedSum / sumOfWeights) : 0;
+      const confidenceLevel = this.calculateConfidence(durations, averageDuration);
 
       // Save stats to Task
       await Task.findByIdAndUpdate(taskId, {
@@ -60,6 +73,8 @@ export class StatsService {
         maxDuration,
         totalDuration,
         executionCount: count,
+        sessionsCount: count,
+        confidenceLevel,
       });
 
       console.log(`✔ Stats recalculadas para tarea ${taskId}: Promedio Ponderado = ${averageDuration}s, Mín = ${minDuration}s, Máx = ${maxDuration}s, Total = ${totalDuration}s, Cantidad = ${count}`);

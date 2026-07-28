@@ -21,6 +21,10 @@ export interface ITask extends Document, IAuditFields, ISoftDeleteFields {
   favorite: boolean;
   totalDuration: number;
   averageDuration: number;
+  minDuration: number;
+  maxDuration: number;
+  executionCount: number;
+  confidenceLevel: 'high' | 'medium' | 'low';
   sessionsCount: number;
   checklist: ISubtask[];
   dueDate?: Date | null;
@@ -54,6 +58,10 @@ const TaskSchema = new Schema<ITask>(
     favorite: { type: Boolean, default: false },
     totalDuration: { type: Number, default: 0 },
     averageDuration: { type: Number, default: 0 },
+    minDuration: { type: Number, default: 0 },
+    maxDuration: { type: Number, default: 0 },
+    executionCount: { type: Number, default: 0 },
+    confidenceLevel: { type: String, enum: ['high', 'medium', 'low'], default: 'low' },
     sessionsCount: { type: Number, default: 0 },
     checklist: [
       {

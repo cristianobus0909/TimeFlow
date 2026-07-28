@@ -232,6 +232,9 @@ export const TasksPage = () => {
 
       showToast('Sesión guardada con éxito.');
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
+      queryClient.invalidateQueries({ queryKey: ['work-sessions'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     } catch (error: any) {
       showToast(error.message || 'Error al guardar la sesión.', 'error');
     }

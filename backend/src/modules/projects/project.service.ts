@@ -160,8 +160,17 @@ export class ProjectService {
       estimatedDuration += avg;
     });
 
-    const sessions = await WorkSession.find({ project: new Types.ObjectId(projectId) });
-    const accumulatedDuration = sessions.reduce((sum: number, s: any) => sum + (s.duration || 0), 0);
+    const projectObjectId = Types.ObjectId.isValid(projectId) ? new Types.ObjectId(projectId) : projectId;
+    const sessions = await WorkSession.find({
+      $or: [
+        { project: projectObjectId },
+        { project: projectId },
+        { projectId: projectObjectId },
+        { projectId: projectId },
+      ],
+      status: 'COMPLETED',
+    });
+    const accumulatedDuration = sessions.reduce((sum: number, s: any) => sum + (s.effectiveDuration || s.duration || 0), 0);
     const remainingDuration = Math.max(0, estimatedDuration - accumulatedDuration);
 
     const completedTasksCount = projectTasks.filter((pt) => pt.status === 'completed').length;
