@@ -11,6 +11,15 @@ import { StatsService } from '@modules/analytics/stats.service';
 import { NotFoundError, ValidationError, AuthorizationError } from '@core/errors/classes';
 import { Types } from 'mongoose';
 
+const extractId = (val: any): string => {
+  if (!val) return '';
+  if (typeof val === 'object') {
+    if (val._id) return val._id.toString();
+    if (val.id) return val.id.toString();
+  }
+  return val.toString();
+};
+
 export class WorkSessionService {
   private repository: WorkSessionRepository;
   private projectService: ProjectService;
@@ -83,7 +92,7 @@ export class WorkSessionService {
       throw new NotFoundError('Sesión de trabajo no encontrada.');
     }
 
-    if (session.user.toString() !== userId) {
+    if (session.user.toString() !== userId && extractId(session.user) !== userId) {
       throw new AuthorizationError('No está autorizado para modificar esta sesión.');
     }
 
@@ -110,7 +119,7 @@ export class WorkSessionService {
       throw new NotFoundError('Sesión de trabajo no encontrada.');
     }
 
-    if (session.user.toString() !== userId) {
+    if (session.user.toString() !== userId && extractId(session.user) !== userId) {
       throw new AuthorizationError('No está autorizado para modificar esta sesión.');
     }
 
@@ -139,7 +148,7 @@ export class WorkSessionService {
       throw new NotFoundError('Sesión de trabajo no encontrada.');
     }
 
-    if (session.user.toString() !== userId) {
+    if (session.user.toString() !== userId && extractId(session.user) !== userId) {
       throw new AuthorizationError('No está autorizado para finalizar esta sesión.');
     }
 
@@ -177,17 +186,21 @@ export class WorkSessionService {
 
     const saved = await session.save();
 
-    // Trigger statistics recalculations
-    await StatsService.recalculateTaskStats(saved.task.toString());
+    // Trigger statistics recalculations with safely extracted string IDs
+    const taskIdStr = extractId(saved.task);
+    if (taskIdStr) {
+      await StatsService.recalculateTaskStats(taskIdStr);
+    }
     
-    if (saved.project) {
-      const projectTask = await ProjectTask.findOne({ projectId: saved.project, taskId: saved.task });
+    const projIdStr = extractId(saved.project);
+    if (projIdStr) {
+      const projectTask = await ProjectTask.findOne({ projectId: projIdStr, taskId: taskIdStr });
       if (projectTask) {
         projectTask.status = 'completed';
         projectTask.actualDuration = (projectTask.actualDuration || 0) + effectiveDuration;
         await projectTask.save();
       }
-      await this.projectService.recalculateProjectEstimates(saved.project.toString());
+      await this.projectService.recalculateProjectEstimates(projIdStr);
     }
 
     return saved;
@@ -199,7 +212,7 @@ export class WorkSessionService {
       throw new NotFoundError('Sesión de trabajo no encontrada.');
     }
 
-    if (session.user.toString() !== userId) {
+    if (session.user.toString() !== userId && extractId(session.user) !== userId) {
       throw new AuthorizationError('No está autorizado para cancelar esta sesión.');
     }
 
@@ -350,9 +363,14 @@ export class WorkSessionService {
     
     await this.repository.softDelete(id, orgId, userId);
 
-    await StatsService.recalculateTaskStats(session.task.toString());
-    if (session.project) {
-      await this.projectService.recalculateProjectEstimates(session.project.toString());
+    const taskIdStr = extractId(session.task);
+    if (taskIdStr) {
+      await StatsService.recalculateTaskStats(taskIdStr);
+    }
+    
+    const projIdStr = extractId(session.project);
+    if (projIdStr) {
+      await this.projectService.recalculateProjectEstimates(projIdStr);
     }
   }
 
@@ -416,15 +434,20 @@ export class WorkSessionService {
       createdBy: new Types.ObjectId(userId),
     });
 
-    await StatsService.recalculateTaskStats(session.task.toString());
-    if (session.project) {
-      const projectTask = await ProjectTask.findOne({ projectId: session.project, taskId: session.task });
+    const taskIdStr = extractId(session.task);
+    if (taskIdStr) {
+      await StatsService.recalculateTaskStats(taskIdStr);
+    }
+    
+    const projIdStr = extractId(session.project);
+    if (projIdStr) {
+      const projectTask = await ProjectTask.findOne({ projectId: projIdStr, taskId: taskIdStr });
       if (projectTask) {
         projectTask.status = 'completed';
         projectTask.actualDuration = (projectTask.actualDuration || 0) + effectiveDuration;
         await projectTask.save();
       }
-      await this.projectService.recalculateProjectEstimates(session.project.toString());
+      await this.projectService.recalculateProjectEstimates(projIdStr);
     }
 
     return session;
