@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { verifyAccessToken } from '@shared/utils/jwt';
 import { User } from '@modules/users/user.model';
+import { Organization } from '@modules/organizations/organization.model';
 
 export interface AuthenticatedRequest<
   P = any,
@@ -41,10 +42,25 @@ export const authenticateToken = async (
       return;
     }
 
+    let orgIdStr = user.organization?.toString();
+    if (!orgIdStr) {
+      // Find or create default organization for this user
+      let existingOrg = await Organization.findOne({ owner: user._id, isDeleted: false });
+      if (!existingOrg) {
+        existingOrg = await Organization.create({
+          name: `Organización de ${user.name || 'Usuario'}`,
+          owner: user._id,
+        });
+      }
+      user.organization = existingOrg._id as any;
+      await user.save();
+      orgIdStr = existingOrg._id.toString();
+    }
+
     req.user = {
       userId: payload.userId,
-      organizationId: user.organization?.toString(),
-      role: user.role,
+      organizationId: orgIdStr,
+      role: user.role || 'OWNER',
     };
     next();
   } catch (error) {

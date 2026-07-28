@@ -237,19 +237,21 @@ export const TasksPage = () => {
     }
   };
 
-  const formatHours = (seconds: number) => {
-    const hrs = Math.floor(seconds / 3600);
-    const mins = Math.floor((seconds % 3600) / 60);
-    const secs = seconds % 60;
+  const formatHours = (seconds?: number | null) => {
+    const safeSeconds = typeof seconds === 'number' && !isNaN(seconds) && isFinite(seconds) ? Math.max(0, seconds) : 0;
+    const hrs = Math.floor(safeSeconds / 3600);
+    const mins = Math.floor((safeSeconds % 3600) / 60);
+    const secs = Math.floor(safeSeconds % 60);
     if (hrs === 0 && mins === 0) return `${secs}s`;
     if (hrs === 0) return `${mins}m ${secs}s`;
     return `${hrs}h ${mins}m`;
   };
 
-  const formatTimeFull = (totalSeconds: number) => {
-    const hrs = Math.floor(totalSeconds / 3600);
-    const mins = Math.floor((totalSeconds % 3600) / 60);
-    const secs = totalSeconds % 60;
+  const formatTimeFull = (totalSeconds?: number | null) => {
+    const safeSeconds = typeof totalSeconds === 'number' && !isNaN(totalSeconds) && isFinite(totalSeconds) ? Math.max(0, totalSeconds) : 0;
+    const hrs = Math.floor(safeSeconds / 3600);
+    const mins = Math.floor((safeSeconds % 3600) / 60);
+    const secs = Math.floor(safeSeconds % 60);
     return [
       hrs.toString().padStart(2, '0'),
       mins.toString().padStart(2, '0'),
