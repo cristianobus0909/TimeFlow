@@ -149,21 +149,14 @@ export class WorkSessionService {
 
     const now = finishData.endTime || new Date();
 
-    // If it was paused, close the last break segment first
-    if (session.status === 'PAUSED') {
-      const openBreak = session.breaks.find(b => !b.endTime);
-      if (openBreak) {
-        openBreak.endTime = now;
-        openBreak.duration = Math.max(0, Math.round((now.getTime() - openBreak.startTime.getTime()) / 1000));
-        session.breakDuration = (session.breakDuration || 0) + openBreak.duration;
+    // Auto-close any open break segments
+    session.breaks.forEach(b => {
+      if (!b.endTime) {
+        b.endTime = now;
+        b.duration = Math.max(0, Math.round((now.getTime() - new Date(b.startTime).getTime()) / 1000));
+        session.breakDuration = (session.breakDuration || 0) + b.duration;
       }
-    }
-
-    // Double check that there are no open breaks left
-    const openBreaks = session.breaks.filter(b => !b.endTime);
-    if (openBreaks.length > 0) {
-      throw new ValidationError('No se puede finalizar la sesión si existen pausas abiertas.');
-    }
+    });
 
     // Calculations
     const duration = Math.max(0, Math.round((now.getTime() - session.startTime.getTime()) / 1000));

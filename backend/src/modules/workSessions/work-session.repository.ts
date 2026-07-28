@@ -62,8 +62,13 @@ export class WorkSessionRepository {
   }
 
   public async findHistory(orgId: string, filters: any = {}): Promise<IWorkSession[]> {
+    const orgObjectId = Types.ObjectId.isValid(orgId) ? new Types.ObjectId(orgId) : orgId;
     const query: any = {
-      organization: new Types.ObjectId(orgId),
+      $or: [
+        { organization: orgObjectId },
+        { organization: orgId }
+      ],
+      isDeleted: { $ne: true },
       ...filters,
     };
     return WorkSession.find(query)

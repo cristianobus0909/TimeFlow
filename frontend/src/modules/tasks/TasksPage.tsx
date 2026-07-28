@@ -214,6 +214,27 @@ export const TasksPage = () => {
     createTaskMutation.mutate(payload);
   };
 
+  const playCompletionChime = () => {
+    try {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(587.33, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.15);
+      gain.gain.setValueAtTime(0.2, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.3);
+    } catch (e) {
+      // Ignore audio errors silently
+    }
+  };
+
   const handleStopTimer = async () => {
     try {
       const timerData = await stopTimer();
@@ -221,13 +242,7 @@ export const TasksPage = () => {
 
       // Play final sound notification if enabled
       if (soundEnabled && settings.soundAlerts) {
-        try {
-          const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2568/2568-84.wav');
-          audio.volume = 0.5;
-          audio.play();
-        } catch (e) {
-          console.warn('Audio play error:', e);
-        }
+        playCompletionChime();
       }
 
       showToast('Sesión guardada con éxito.');
