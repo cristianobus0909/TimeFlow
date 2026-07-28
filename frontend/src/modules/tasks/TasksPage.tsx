@@ -18,6 +18,7 @@ import {
   Keyboard,
   Clock,
   Sparkles,
+  Edit2,
 } from 'lucide-react';
 import { api } from '@shared/services/api';
 import { Card } from '@shared/components/Card';
@@ -118,6 +119,38 @@ export const TasksPage = () => {
     { key: 'BLOCKED', name: 'Bloqueadas', color: 'border-rose-500/30' },
     { key: 'DONE', name: 'Finalizadas', color: 'border-emerald-500/30' },
   ];
+
+  // Edit Task States
+  const [editingTask, setEditingTask] = useState<any | null>(null);
+  const [editTitle, setEditTitle] = useState('');
+  const [editDescription, setEditDescription] = useState('');
+  const [editCategory, setEditCategory] = useState('General');
+  const [editPriority, setEditPriority] = useState('MEDIUM');
+  const [editStatus, setEditStatus] = useState('TODO');
+  const [editProject, setEditProject] = useState('');
+
+  const handleOpenEditTask = (task: any) => {
+    setEditingTask(task);
+    setEditTitle(task.title || task.name || '');
+    setEditDescription(task.description || '');
+    setEditCategory(typeof task.category === 'object' ? task.category?._id || task.category?.name : task.category || 'General');
+    setEditPriority(task.priority || 'MEDIUM');
+    setEditStatus(task.status || 'TODO');
+    setEditProject(typeof task.project === 'object' ? task.project?._id : task.project || '');
+  };
+
+  const updateTaskMutation = useMutation({
+    mutationFn: (values: any) => api.put(`/tasks/${editingTask._id}`, values),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
+      showToast('Tarea actualizada con éxito.');
+      setEditingTask(null);
+    },
+    onError: (err: any) => {
+      showToast(err.message || 'Error al actualizar la tarea.', 'error');
+    },
+  });
 
   const {
     register,
@@ -561,6 +594,13 @@ export const TasksPage = () => {
                       <Star className={`w-4 h-4 ${task.favorite ? 'fill-amber-400 text-amber-400' : ''}`} />
                     </button>
                     <button
+                      onClick={() => handleOpenEditTask(task)}
+                      title="Editar Tarea"
+                      className="p-1 text-zinc-600 hover:text-amber-400 transition-colors opacity-0 group-hover:opacity-100 cursor-pointer"
+                    >
+                      <Edit2 className="w-4 h-4" />
+                    </button>
+                    <button
                       onClick={() => {
                         if (window.confirm('¿Está seguro de que desea eliminar esta tarea? Se mantendrá en el historial pero se archivará.')) {
                           deleteTaskMutation.mutate(task._id);
@@ -746,6 +786,126 @@ export const TasksPage = () => {
           </div>
         </form>
       </Modal>
+
+      {/* Edit Task Modal */}
+      {editingTask && (
+        <Modal
+          isOpen={!!editingTask}
+          onClose={() => setEditingTask(null)}
+          title="Editar Tarea"
+        >
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (!editTitle.trim()) {
+                showToast('El título de la tarea es obligatorio.', 'error');
+                return;
+              }
+              updateTaskMutation.mutate({
+                title: editTitle,
+                description: editDescription,
+                category: editCategory,
+                priority: editPriority,
+                status: editStatus,
+                project: editProject || null,
+              });
+            }}
+            className="flex flex-col gap-4 text-left"
+          >
+            <div>
+              <label className="text-xs font-medium text-zinc-400 mb-1.5 block">Título de la Tarea</label>
+              <Input
+                value={editTitle}
+                onChange={(e) => setEditTitle(e.target.value)}
+                placeholder="Nombre o título de la tarea..."
+                required
+              />
+            </div>
+
+            <div>
+              <label className="text-xs font-medium text-zinc-400 mb-1.5 block">Descripción</label>
+              <textarea
+                value={editDescription}
+                onChange={(e) => setEditDescription(e.target.value)}
+                placeholder="Detalles de la tarea..."
+                rows={3}
+                className="w-full bg-zinc-950 border border-zinc-800/80 rounded-xl p-3 text-xs text-zinc-200 focus:outline-none focus:border-brand-purple"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs font-medium text-zinc-400 mb-1.5 block">Categoría</label>
+                <select
+                  value={editCategory}
+                  onChange={(e) => setEditCategory(e.target.value)}
+                  className="w-full bg-zinc-950 border border-zinc-800/80 text-zinc-200 rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:border-brand-purple"
+                >
+                  {allCategories.map((cat: any) => (
+                    <option key={cat._id || cat} value={cat._id || cat.name || cat}>
+                      {cat.name || cat}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-xs font-medium text-zinc-400 mb-1.5 block">Prioridad</label>
+                <select
+                  value={editPriority}
+                  onChange={(e) => setEditPriority(e.target.value)}
+                  className="w-full bg-zinc-950 border border-zinc-800/80 text-zinc-200 rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:border-brand-purple"
+                >
+                  <option value="LOW">Baja</option>
+                  <option value="MEDIUM">Media</option>
+                  <option value="HIGH">Alta</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs font-medium text-zinc-400 mb-1.5 block">Estado</label>
+                <select
+                  value={editStatus}
+                  onChange={(e) => setEditStatus(e.target.value)}
+                  className="w-full bg-zinc-950 border border-zinc-800/80 text-zinc-200 rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:border-brand-purple"
+                >
+                  <option value="TODO">Por Hacer</option>
+                  <option value="IN_PROGRESS">En Proceso</option>
+                  <option value="BLOCKED">Bloqueado</option>
+                  <option value="DONE">Completado</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-xs font-medium text-zinc-400 mb-1.5 block">Proyecto Vincular</label>
+                <select
+                  value={editProject}
+                  onChange={(e) => setEditProject(e.target.value)}
+                  className="w-full bg-zinc-950 border border-zinc-800/80 text-zinc-200 rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:border-brand-purple"
+                >
+                  <option value="">Sin Proyecto (General)</option>
+                  {projects.map((p: any) => (
+                    <option key={p._id} value={p._id}>
+                      {p.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 mt-4 pt-4 border-t border-zinc-900">
+              <Button type="button" variant="secondary" onClick={() => setEditingTask(null)}>
+                Cancelar
+              </Button>
+              <Button type="submit" isLoading={updateTaskMutation.isPending}>
+                Guardar Cambios
+              </Button>
+            </div>
+          </form>
+        </Modal>
+      )}
     </div>
   );
 };

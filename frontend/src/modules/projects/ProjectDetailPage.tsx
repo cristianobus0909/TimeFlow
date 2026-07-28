@@ -13,6 +13,7 @@ import {
   Settings,
   AlertCircle,
   GripVertical,
+  Edit2,
 } from 'lucide-react';
 import { api } from '@shared/services/api';
 import { Card } from '@shared/components/Card';
@@ -52,6 +53,35 @@ export const ProjectDetailPage = () => {
   const [editColor, setEditColor] = useState('#10B981');
   const [editNotes, setEditNotes] = useState('');
   const [quantities, setQuantities] = useState<Record<string, number>>({});
+
+  // Edit Task State
+  const [editingTask, setEditingTask] = useState<any | null>(null);
+  const [editTaskTitle, setEditTaskTitle] = useState('');
+  const [editTaskDescription, setEditTaskDescription] = useState('');
+  const [editTaskPriority, setEditTaskPriority] = useState('MEDIUM');
+  const [editTaskStatus, setEditTaskStatus] = useState('TODO');
+
+  const handleOpenEditTask = (taskObj: any) => {
+    if (!taskObj) return;
+    setEditingTask(taskObj);
+    setEditTaskTitle(taskObj.title || taskObj.name || '');
+    setEditTaskDescription(taskObj.description || '');
+    setEditTaskPriority(taskObj.priority || 'MEDIUM');
+    setEditTaskStatus(taskObj.status || 'TODO');
+  };
+
+  const updateTaskMutation = useMutation({
+    mutationFn: (values: any) => api.put(`/tasks/${editingTask._id}`, values),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['project', id] });
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      showToast('Tarea actualizada con éxito.');
+      setEditingTask(null);
+    },
+    onError: (err: any) => {
+      showToast(err.message || 'Error al actualizar la tarea.', 'error');
+    },
+  });
 
   // Invalidate queries when a timer session logs in the background
   useEffect(() => {
@@ -495,6 +525,13 @@ export const ProjectDetailPage = () => {
                         </span>
                       )}
                       <button
+                        onClick={() => handleOpenEditTask(pt.taskId)}
+                        title="Editar Tarea"
+                        className="p-1.5 text-zinc-600 hover:text-amber-400 transition-colors cursor-pointer flex items-center justify-center"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </button>
+                      <button
                         onClick={() => removeTaskMutation.mutate(pt._id)}
                         className="p-1.5 text-zinc-700 hover:text-rose-500 transition-colors cursor-pointer flex items-center justify-center"
                       >
@@ -846,6 +883,91 @@ export const ProjectDetailPage = () => {
           </div>
         </div>
       </Modal>
+
+      {/* Edit Task Modal */}
+      {editingTask && (
+        <Modal
+          isOpen={!!editingTask}
+          onClose={() => setEditingTask(null)}
+          title="Editar Tarea"
+        >
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (!editTaskTitle.trim()) {
+                showToast('El título de la tarea es obligatorio.', 'error');
+                return;
+              }
+              updateTaskMutation.mutate({
+                title: editTaskTitle,
+                description: editTaskDescription,
+                priority: editTaskPriority,
+                status: editTaskStatus,
+              });
+            }}
+            className="flex flex-col gap-4 text-left"
+          >
+            <div>
+              <label className="text-xs font-medium text-zinc-400 mb-1.5 block">Título de la Tarea</label>
+              <Input
+                value={editTaskTitle}
+                onChange={(e) => setEditTaskTitle(e.target.value)}
+                placeholder="Nombre o título de la tarea..."
+                required
+              />
+            </div>
+
+            <div>
+              <label className="text-xs font-medium text-zinc-400 mb-1.5 block">Descripción</label>
+              <textarea
+                value={editTaskDescription}
+                onChange={(e) => setEditTaskDescription(e.target.value)}
+                placeholder="Detalles de la tarea..."
+                rows={3}
+                className="w-full bg-zinc-950 border border-zinc-800/80 rounded-xl p-3 text-xs text-zinc-200 focus:outline-none focus:border-brand-purple"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs font-medium text-zinc-400 mb-1.5 block">Prioridad</label>
+                <select
+                  value={editTaskPriority}
+                  onChange={(e) => setEditTaskPriority(e.target.value)}
+                  className="w-full bg-zinc-950 border border-zinc-800/80 text-zinc-200 rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:border-brand-purple"
+                >
+                  <option value="LOW">Baja</option>
+                  <option value="MEDIUM">Media</option>
+                  <option value="HIGH">Alta</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-xs font-medium text-zinc-400 mb-1.5 block">Estado</label>
+                <select
+                  value={editTaskStatus}
+                  onChange={(e) => setEditTaskStatus(e.target.value)}
+                  className="w-full bg-zinc-950 border border-zinc-800/80 text-zinc-200 rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:border-brand-purple"
+                >
+                  <option value="TODO">Por Hacer</option>
+                  <option value="IN_PROGRESS">En Proceso</option>
+                  <option value="BLOCKED">Bloqueado</option>
+                  <option value="DONE">Completado</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 mt-4 pt-4 border-t border-zinc-900">
+              <Button type="button" variant="secondary" onClick={() => setEditingTask(null)}>
+                Cancelar
+              </Button>
+              <Button type="submit" isLoading={updateTaskMutation.isPending}>
+                Guardar Cambios
+              </Button>
+            </div>
+          </form>
+        </Modal>
+      )}
     </div>
   );
 };

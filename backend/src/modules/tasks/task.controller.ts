@@ -81,7 +81,12 @@ export class TaskController {
         throw new AuthorizationError('Usuario no autenticado.');
       }
 
-      const result = updateTaskSchema.safeParse(req.body);
+      const payload = {
+        ...req.body,
+        title: req.body.title || req.body.name,
+      };
+
+      const result = updateTaskSchema.safeParse(payload);
       if (!result.success) {
         throw new ValidationError(result.error.issues[0].message);
       }

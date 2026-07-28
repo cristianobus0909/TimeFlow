@@ -30,13 +30,55 @@ export class ProjectService {
       throw new NotFoundError('Proyecto no encontrado.');
     }
 
-    const projectTasks = await ProjectTask.find({ projectId: id })
+    const projectObjectId = Types.ObjectId.isValid(id) ? new Types.ObjectId(id) : id;
+
+    // 1. Fetch from ProjectTask junction collection
+    const projectTasks = await ProjectTask.find({
+      $or: [{ projectId: projectObjectId }, { projectId: id }]
+    })
       .sort({ order: 1 })
       .populate('taskId');
 
+    // 2. Fetch direct tasks from Task collection assigned to this project
+    const directTasks = await Task.find({
+      organization: new Types.ObjectId(orgId),
+      $or: [{ project: projectObjectId }, { project: id }],
+      isDeleted: { $ne: true }
+    });
+
+    const existingTaskIds = new Set(
+      projectTasks
+        .filter((pt) => pt.taskId)
+        .map((pt) => (typeof pt.taskId === 'object' && '_id' in (pt.taskId as any) ? (pt.taskId as any)._id.toString() : pt.taskId.toString()))
+    );
+
+    const mergedTasks: any[] = [...projectTasks];
+
+    // Sync direct tasks into project tasks list if not already present
+    for (const dt of directTasks) {
+      const dtIdStr = dt._id.toString();
+      if (!existingTaskIds.has(dtIdStr)) {
+        try {
+          const newPt = await ProjectTask.create({
+            projectId: projectObjectId,
+            taskId: dt._id,
+            order: mergedTasks.length,
+            status: dt.status === 'DONE' || dt.status === 'completed' ? 'completed' : 'pending',
+            actualDuration: dt.totalDuration || 0,
+          });
+          const populatedPt = await ProjectTask.findById(newPt._id).populate('taskId');
+          if (populatedPt) {
+            mergedTasks.push(populatedPt);
+          }
+        } catch (e) {
+          // If duplicate key or insert issue, continue
+        }
+      }
+    }
+
     return {
       project,
-      tasks: projectTasks,
+      tasks: mergedTasks,
     };
   }
 
