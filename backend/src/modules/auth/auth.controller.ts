@@ -68,8 +68,12 @@ export class AuthController {
   public refresh = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const token = req.cookies.refreshToken;
-      const { accessToken } = await this.service.refresh(token);
+      if (!token) {
+        res.status(401).json({ error: 'Token de actualización no proporcionado.' });
+        return;
+      }
 
+      const { accessToken } = await this.service.refresh(token);
       res.status(200).json({ accessToken });
     } catch (error) {
       next(error);

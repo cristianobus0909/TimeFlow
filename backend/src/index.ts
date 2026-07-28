@@ -13,11 +13,19 @@ import apiRouter from './routes';
 const app = express();
 const PORT = env.PORT;
 
+// Enable trust proxy for reverse proxies like Render/Cloudflare
+app.set('trust proxy', 1);
+
 // Connect to Database
 connectDB();
 
 // Middlewares
-app.use(helmet());
+app.use(
+  helmet({
+    crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
+  })
+);
 app.use(cookieParser());
 
 // CORS configuration supporting cookies and handling missing protocols / Vercel preview URLs
