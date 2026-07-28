@@ -47,14 +47,14 @@ export class AIService {
     `;
 
     return this.callLLM(orgId, userId, contextPrompt, 'DAILY_BRIEF', `
-      ¡Buenos días! 
-      Hoy tienes una jornada productiva por delante. Aquí está tu resumen de hoy:
-      • 📝 **${pendingTasksCount} tareas** pendientes en tu bandeja.
-      • 🚀 **${activeProjectsCount} proyectos** en progreso activo.
-      • ⚠️ **${overdueInvoicesCount} facturas** pendientes de cobro que requieren atención.
-      • ⏱️ Llevas **${todayHours.toFixed(1)} horas** de enfoque registradas hoy.
-      
-      *Recomendación del día:* Concéntrate en completar tareas bloqueadas en tus proyectos prioritarios para acelerar la facturación de esta semana.
+¡Buenos días! 
+Hoy tienes una jornada productiva por delante. Aquí está tu resumen de hoy:
+• 📝 **${pendingTasksCount} tareas** pendientes en tu bandeja.
+• 🚀 **${activeProjectsCount} proyectos** en progreso activo.
+• ⚠️ **${overdueInvoicesCount} facturas** pendientes de cobro que requieren atención.
+• ⏱️ Llevas **${todayHours.toFixed(1)} horas** de enfoque registradas hoy.
+
+*Recomendación del día:* Concéntrate en completar tareas bloqueadas en tus proyectos prioritarios para acelerar la facturación de esta semana.
     `);
   }
 
@@ -130,43 +130,100 @@ export class AIService {
     return insights;
   }
 
-  // --- NATURAL LANGUAGE DATA SEARCH ---
+  // --- NATURAL LANGUAGE DATA SEARCH & CHAT ASSISTANT ---
   public async naturalLanguageSearch(orgId: string, userId: string, query: string): Promise<string> {
     const orgObjectId = new Types.ObjectId(orgId);
-    const lowercaseQuery = query.toLowerCase();
+    const q = query.toLowerCase().trim();
 
-    // 1. Invoices & Revenue query matching
-    if (lowercaseQuery.includes('factur') || lowercaseQuery.includes('gan') || lowercaseQuery.includes('cobro')) {
-      const paidInvoices = await Invoice.find({ organization: orgObjectId, status: 'PAID' });
-      const sum = paidInvoices.reduce((acc, inv) => acc + inv.total, 0);
-      return `De acuerdo a los datos contables de tu organización, has cobrado un total facturado de **$${sum.toFixed(2)} USD** distribuidos en **${paidInvoices.length} facturas** pagadas.`;
+    // 1. Greetings & System Capabilities
+    if (
+      q === 'hola' ||
+      q.includes('hola') ||
+      q.includes('buenas') ||
+      q.includes('saludos') ||
+      q.includes('ayuda') ||
+      q.includes('quien eres') ||
+      q.includes('que haces') ||
+      q.includes('que puedes') ||
+      q === 'inicio'
+    ) {
+      const pendingTasksCount = await Task.countDocuments({ organization: orgObjectId, status: { $ne: 'DONE' } });
+      const activeProjectsCount = await Project.countDocuments({ organization: orgObjectId, status: 'ACTIVE' });
+      return `¡Hola! 👋 Soy tu **Asistente Ejecutivo & Business Coach** de TimeFlow.
+
+Actualmente en tu espacio de trabajo tienes **${pendingTasksCount} tareas pendientes** y **${activeProjectsCount} proyectos activos**.
+
+Puedes preguntarme cosas como:
+• 📊 *"¿Cuánto he facturado?"* o *"¿Cuáles son mis facturas?"*
+• ⏱️ *"¿Cuántas horas he trabajado?"*
+• 📝 *"¿Qué tareas tengo pendientes?"*
+• 🏢 *"¿Qué clientes tengo registrados?"*
+• 🚀 *"¿Cuáles son mis proyectos?"*
+• 📈 *"Dame un resumen general"*`;
     }
 
-    // 2. Tracked time queries
-    if (lowercaseQuery.includes('hora') || lowercaseQuery.includes('tiempo') || lowercaseQuery.includes('trabaj')) {
+    // 2. Invoices & Revenue matching
+    if (q.includes('factur') || q.includes('gan') || q.includes('cobro') || q.includes('ingreso') || q.includes('plata') || q.includes('dinero')) {
+      const paidInvoices = await Invoice.find({ organization: orgObjectId, status: 'PAID' });
+      const pendingInvoices = await Invoice.find({ organization: orgObjectId, status: { $in: ['PENDING', 'OVERDUE'] } });
+      const totalPaid = paidInvoices.reduce((acc, inv) => acc + inv.total, 0);
+      const totalPending = pendingInvoices.reduce((acc, inv) => acc + inv.total, 0);
+      return `📊 **Resumen Financiero y Facturación:**\n\n• **Cobrado:** $${totalPaid.toFixed(2)} USD (${paidInvoices.length} facturas pagadas)\n• **Pendiente de Cobro:** $${totalPending.toFixed(2)} USD (${pendingInvoices.length} facturas pendientes)`;
+    }
+
+    // 3. Tracked Time queries
+    if (q.includes('hora') || q.includes('tiempo') || q.includes('trabaj') || q.includes('sesion') || q.includes('minuto')) {
       const sessions = await WorkSession.find({ organization: orgObjectId, status: 'COMPLETED' });
       const totalHours = sessions.reduce((acc, s) => acc + (s.duration || 0), 0) / 3600;
-      return `Has registrado un total acumulado de **${totalHours.toFixed(1)} horas** de trabajo en sesiones productivas en tu organización.`;
+      return `⏱️ **Registro de Tiempo:**\n\nHas registrado un total acumulado de **${totalHours.toFixed(1)} horas** de trabajo enfocado en **${sessions.length} sesiones completadas**.`;
     }
 
-    // 3. Project counts and names
-    if (lowercaseQuery.includes('proyect')) {
+    // 4. Tasks & To-dos matching
+    if (q.includes('tarea') || q.includes('pendiente') || q.includes('hacer') || q.includes('activida')) {
+      const pendingTasks = await Task.find({ organization: orgObjectId, status: { $ne: 'DONE' } }).limit(5);
+      const totalPending = await Task.countDocuments({ organization: orgObjectId, status: { $ne: 'DONE' } });
+      if (pendingTasks.length === 0) {
+        return `🎉 ¡Excelente noticia! No tienes tareas pendientes registradas en este momento.`;
+      }
+      const taskList = pendingTasks.map(t => `• **${t.title}** (${t.priority || 'MEDIUM'})`).join('\n');
+      return `📝 **Tareas Pendientes (${totalPending} en total):**\n\n${taskList}`;
+    }
+
+    // 5. Clients matching
+    if (q.includes('cliente') || q.includes('empresa') || q.includes('cuenta')) {
+      const clients = await Client.find({ organization: orgObjectId, isDeleted: false }).limit(5);
+      const totalClients = await Client.countDocuments({ organization: orgObjectId, isDeleted: false });
+      if (clients.length === 0) {
+        return `🏢 Aún no tienes clientes registrados. Puedes agregar uno desde el módulo de **Clientes**.`;
+      }
+      const clientList = clients.map(c => `• **${c.name}** ${c.company ? `(${c.company})` : ''}`).join('\n');
+      return `🏢 **Clientes Registrados (${totalClients} en total):**\n\n${clientList}`;
+    }
+
+    // 6. Projects matching
+    if (q.includes('proyect')) {
       const projectsCount = await Project.countDocuments({ organization: orgObjectId, isDeleted: false });
       const projects = await Project.find({ organization: orgObjectId, isDeleted: false }).limit(5);
-      const names = projects.map(p => p.name).join(', ');
-      return `Actualmente tienes **${projectsCount} proyectos** registrados. Los más recientes son: *${names}*.`;
+      const names = projects.map(p => `• **${p.name}** [${p.status}]`).join('\n');
+      return `🚀 **Proyectos (${projectsCount} en total):**\n\n${names}`;
     }
 
-    // 4. Default LLM fallback request mapping
+    // 7. General Executive Summary
+    if (q.includes('resumen') || q.includes('estado') || q.includes('general') || q.includes('metrica') || q.includes('dashboard')) {
+      return this.getDailyBrief(orgId, userId);
+    }
+
+    // 8. LLM Prompt fallback request
+    const pendingTasksCount = await Task.countDocuments({ organization: orgObjectId, status: { $ne: 'DONE' } });
+    const activeProjectsCount = await Project.countDocuments({ organization: orgObjectId, status: 'ACTIVE' });
     const prompt = `
       Responde a la siguiente consulta sobre los datos del workspace en TimeFlow:
       Pregunta: "${query}"
-      Si es una pregunta genérica de productividad o no hay datos, da un consejo breve y accionable de negocio.
+      Si es una pregunta genérica de productividad o no hay datos, responde de forma amigable como Business Coach.
     `;
 
     return this.callLLM(orgId, userId, prompt, 'CHAT_SEARCH', `
-      No encontré una consulta estructurada que coincida exactamente con "${query}". 
-      Como recomendación general de tu Business Coach: intenta organizar tus bloques de tiempo bajo la técnica Pomodoro en tus proyectos activos para registrar métricas de enfoque más consistentes.
+Entendido. Sobre tu consulta ("${query}"): Actualmente cuentas con **${pendingTasksCount} tareas pendientes** y **${activeProjectsCount} proyectos activos** en tu panel. Te sugiero organizar tu jornada aplicando bloques Pomodoro para optimizar tus horas de enfoque.
     `);
   }
 
@@ -201,7 +258,6 @@ export class AIService {
           const json = (await response.json()) as any;
           const reply = json.candidates?.[0]?.content?.parts?.[0]?.text;
           if (reply) {
-            // Log tokens and cost (mocking estimates for flash model: $0.00015 / 1k input tokens)
             await this.logAICost(orgId, userId, 'GEMINI', 'gemini-1.5-flash', 150, 200, 0.0001, action);
             return reply;
           }
