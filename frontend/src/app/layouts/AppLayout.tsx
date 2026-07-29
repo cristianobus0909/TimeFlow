@@ -126,6 +126,30 @@ export const AppLayout = () => {
     };
   }, [isRunning, isPaused, tick]);
 
+  // Keep-Alive Session Heartbeat: Automatically refreshes authentication tokens while a timer is running so user session NEVER expires
+  useEffect(() => {
+    let heartbeatInterval: any = null;
+
+    if (isRunning) {
+      const sendHeartbeat = async () => {
+        try {
+          // Silent active session ping automatically refreshes token & extends session
+          await api.get('/work-sessions/active');
+        } catch (e) {
+          // Ignore transient errors; api.ts handles auto-refresh
+        }
+      };
+
+      sendHeartbeat();
+      // Send heartbeat ping every 3 minutes while timer is active
+      heartbeatInterval = setInterval(sendHeartbeat, 3 * 60 * 1000);
+    }
+
+    return () => {
+      if (heartbeatInterval) clearInterval(heartbeatInterval);
+    };
+  }, [isRunning]);
+
   // Auto-start transition timer ticking & triggering logic
   useEffect(() => {
     let timer: any = null;

@@ -74,6 +74,15 @@ export class AuthController {
       }
 
       const { accessToken } = await this.service.refresh(token);
+
+      const isProd = env.NODE_ENV === 'production';
+      res.cookie('refreshToken', token, {
+        httpOnly: true,
+        secure: isProd,
+        sameSite: isProd ? 'none' : 'lax',
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+      });
+
       res.status(200).json({ accessToken });
     } catch (error) {
       next(error);
