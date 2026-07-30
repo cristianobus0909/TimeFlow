@@ -309,124 +309,124 @@ export const AppLayout = () => {
     };
   }, [isCompact, setCompact, theme]);
 
-  if (isCompact) {
-    const miniPlayerContent = nextTaskToAutoStart ? (
-      <div className="flex items-center gap-3 bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800/80 px-4 py-1.5 rounded-full shadow-lg max-w-sm truncate">
-        {/* Glowing dot representing current activity */}
-        <div className="w-2.5 h-2.5 rounded-full flex-shrink-0 animate-ping bg-brand-emerald" />
-        
-        {/* Clock icon */}
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 text-zinc-500 dark:text-zinc-400" aria-hidden="true">
-          <circle cx="12" cy="12" r="10"></circle>
-          <path d="M12 6v6l4 2"></path>
-        </svg>
+  const miniPlayerContent = nextTaskToAutoStart ? (
+    <div className="flex items-center gap-3 bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800/80 px-4 py-1.5 rounded-full shadow-lg max-w-sm truncate">
+      {/* Glowing dot representing current activity */}
+      <div className="w-2.5 h-2.5 rounded-full flex-shrink-0 animate-ping bg-brand-emerald" />
+      
+      {/* Clock icon */}
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 text-zinc-500 dark:text-zinc-400" aria-hidden="true">
+        <circle cx="12" cy="12" r="10"></circle>
+        <path d="M12 6v6l4 2"></path>
+      </svg>
 
-        {/* Task description */}
-        <div className="flex flex-col text-left max-w-[120px]">
-          <span className="text-[10px] text-zinc-500 dark:text-zinc-400 font-medium uppercase tracking-wider">
-            Siguiente Tarea
-          </span>
-          <span className="text-xs font-semibold text-zinc-800 dark:text-zinc-200 truncate" style={{ color: nextTaskToAutoStart.taskColor }}>
-            {nextTaskToAutoStart.taskName}
-          </span>
-        </div>
-
-        {/* Timer countdown */}
-        <span className="font-mono text-sm font-bold text-zinc-900 dark:text-zinc-100 ml-2">
-          00:00:0{autoStartCountdown}
+      {/* Task description */}
+      <div className="flex flex-col text-left max-w-[120px]">
+        <span className="text-[10px] text-zinc-500 dark:text-zinc-400 font-medium uppercase tracking-wider">
+          Siguiente Tarea
         </span>
-
-        {/* Controls */}
-        <div className="flex items-center gap-1 border-l border-zinc-200 dark:border-zinc-800 pl-2 ml-1">
-          <button
-            onClick={() => setAutoStart(nextTaskToAutoStart, 0)}
-            title="Iniciar Ya"
-            className="p-1 rounded-md text-emerald-600 dark:text-emerald-450 hover:bg-emerald-500/10 cursor-pointer"
-          >
-            <Play className="w-3.5 h-3.5 fill-current opacity-20" />
-          </button>
-          <button
-            onClick={() => setAutoStart(null)}
-            title="Cancelar"
-            className="p-1 rounded-md text-rose-500 dark:text-rose-450 hover:bg-rose-500/10 cursor-pointer"
-          >
-            <Square className="w-3.5 h-3.5 fill-current" />
-          </button>
-        </div>
+        <span className="text-xs font-semibold text-zinc-800 dark:text-zinc-200 truncate" style={{ color: nextTaskToAutoStart.taskColor }}>
+          {nextTaskToAutoStart.taskName}
+        </span>
       </div>
-    ) : (
-      <div className="flex items-center gap-3 bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800/80 px-4 py-1.5 rounded-full shadow-lg max-w-sm truncate animate-pulse-ring">
-        {/* Glowing dot representing current activity */}
-        {isRunning && !isPaused ? (
-          <div className="w-2.5 h-2.5 rounded-full flex-shrink-0 animate-ping" style={{ backgroundColor: activeTaskColor || '#7C3AED' }} />
-        ) : (
-          <div className="w-2.5 h-2.5 rounded-full flex-shrink-0 bg-zinc-400 dark:bg-zinc-600" />
-        )}
-        
-        {/* Clock icon */}
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-clock w-4 h-4 text-zinc-500 dark:text-zinc-400" aria-hidden="true">
-          <circle cx="12" cy="12" r="10"></circle>
-          <path d="M12 6v6l4 2"></path>
-        </svg>
 
-        {/* Task description */}
-        <div className="flex flex-col text-left max-w-[120px]">
-          <span className="text-[10px] text-zinc-500 dark:text-zinc-400 font-medium uppercase tracking-wider">
-            {isRunning ? 'Cronometrando' : 'Sin Actividad'}
-          </span>
-          <span className="text-xs font-semibold text-zinc-800 dark:text-zinc-200 truncate">
-            {isRunning ? activeTaskName : 'TimeFlow'}
-          </span>
-        </div>
+      {/* Timer countdown */}
+      <span className="font-mono text-sm font-bold text-zinc-900 dark:text-zinc-100 ml-2">
+        00:00:0{autoStartCountdown}
+      </span>
 
-        {/* Timer countdown */}
-        <span className="font-mono text-sm font-bold text-zinc-900 dark:text-zinc-100 ml-2">
-          {isRunning ? formatTime(seconds) : '00:00:00'}
+      {/* Controls */}
+      <div className="flex items-center gap-1 border-l border-zinc-200 dark:border-zinc-800 pl-2 ml-1">
+        <button
+          onClick={() => setAutoStart(nextTaskToAutoStart, 0)}
+          title="Iniciar Ya"
+          className="p-1 rounded-md text-emerald-600 dark:text-emerald-450 hover:bg-emerald-500/10 cursor-pointer"
+        >
+          <Play className="w-3.5 h-3.5 fill-current opacity-20" />
+        </button>
+        <button
+          onClick={() => setAutoStart(null)}
+          title="Cancelar"
+          className="p-1 rounded-md text-rose-500 dark:text-rose-450 hover:bg-rose-500/10 cursor-pointer"
+        >
+          <Square className="w-3.5 h-3.5 fill-current" />
+        </button>
+      </div>
+    </div>
+  ) : (
+    <div className="flex items-center gap-3 bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800/80 px-4 py-1.5 rounded-full shadow-lg max-w-sm truncate animate-pulse-ring">
+      {/* Glowing dot representing current activity */}
+      {isRunning && !isPaused ? (
+        <div className="w-2.5 h-2.5 rounded-full flex-shrink-0 animate-ping" style={{ backgroundColor: activeTaskColor || '#7C3AED' }} />
+      ) : (
+        <div className="w-2.5 h-2.5 rounded-full flex-shrink-0 bg-zinc-400 dark:bg-zinc-600" />
+      )}
+      
+      {/* Clock icon */}
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-clock w-4 h-4 text-zinc-500 dark:text-zinc-400" aria-hidden="true">
+        <circle cx="12" cy="12" r="10"></circle>
+        <path d="M12 6v6l4 2"></path>
+      </svg>
+
+      {/* Task description */}
+      <div className="flex flex-col text-left max-w-[120px]">
+        <span className="text-[10px] text-zinc-500 dark:text-zinc-400 font-medium uppercase tracking-wider">
+          {isRunning ? 'Cronometrando' : 'Sin Actividad'}
         </span>
+        <span className="text-xs font-semibold text-zinc-800 dark:text-zinc-200 truncate">
+          {isRunning ? activeTaskName : 'TimeFlow'}
+        </span>
+      </div>
 
-        {/* Controls */}
-        <div className="flex items-center gap-1 border-l border-zinc-200 dark:border-zinc-800 pl-2 ml-1">
-          {isRunning && (
-            <>
-              {isPaused ? (
-                <button
-                  onClick={resumeTimer}
-                  title="Reanudar"
-                  className="p-1 rounded-md text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 cursor-pointer"
-                >
-                  <Play className="w-3.5 h-3.5 fill-current opacity-20" />
-                </button>
-              ) : (
-                <button
-                  onClick={pauseTimer}
-                  title="Pausar"
-                  className="p-1 rounded-md text-amber-600 dark:text-amber-450 hover:bg-amber-500/10 cursor-pointer"
-                >
-                  <Pause className="w-3.5 h-3.5 fill-current opacity-20" />
-                </button>
-              )}
+      {/* Timer countdown */}
+      <span className="font-mono text-sm font-bold text-zinc-900 dark:text-zinc-100 ml-2">
+        {isRunning ? formatTime(seconds) : '00:00:00'}
+      </span>
+
+      {/* Controls */}
+      <div className="flex items-center gap-1 border-l border-zinc-200 dark:border-zinc-800 pl-2 ml-1">
+        {isRunning && (
+          <>
+            {isPaused ? (
               <button
-                onClick={handleCompactStop}
-                title="Guardar y finalizar"
-                className="p-1 rounded-md text-zinc-500 dark:text-zinc-400 hover:text-rose-500 dark:hover:text-rose-450 hover:bg-zinc-200 dark:hover:bg-zinc-800 cursor-pointer"
+                onClick={resumeTimer}
+                title="Reanudar"
+                className="p-1 rounded-md text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 cursor-pointer"
               >
-                <Square className="w-3.5 h-3.5 fill-current" />
+                <Play className="w-3.5 h-3.5 fill-current opacity-20" />
               </button>
-            </>
-          )}
+            ) : (
+              <button
+                onClick={pauseTimer}
+                title="Pausar"
+                className="p-1 rounded-md text-amber-600 dark:text-amber-450 hover:bg-amber-500/10 cursor-pointer"
+              >
+                <Pause className="w-3.5 h-3.5 fill-current opacity-20" />
+              </button>
+            )}
+            <button
+              onClick={handleCompactStop}
+              title="Guardar y finalizar"
+              className="p-1 rounded-md text-zinc-500 dark:text-zinc-400 hover:text-rose-500 dark:hover:text-rose-450 hover:bg-zinc-200 dark:hover:bg-zinc-800 cursor-pointer"
+            >
+              <Square className="w-3.5 h-3.5 fill-current" />
+            </button>
+          </>
+        )}
 
-          {/* Toggle back to full screen / maximize */}
-          <button
-            onClick={() => setCompact(false)}
-            title="Modo completo"
-            className="p-1 rounded-md text-zinc-550 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200 hover:bg-zinc-200 dark:hover:bg-zinc-800 cursor-pointer"
-          >
-            <Maximize2 className="w-3.5 h-3.5" />
-          </button>
-        </div>
+        {/* Toggle back to full screen / maximize */}
+        <button
+          onClick={() => setCompact(false)}
+          title="Modo completo"
+          className="p-1 rounded-md text-zinc-550 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200 hover:bg-zinc-200 dark:hover:bg-zinc-800 cursor-pointer"
+        >
+          <Maximize2 className="w-3.5 h-3.5" />
+        </button>
       </div>
-    );
+    </div>
+  );
 
+  if (isCompact) {
     const themedWrapper = (
       <div className={`${theme === 'dark' ? 'dark' : ''} flex items-center justify-center h-full w-full p-2 overflow-hidden select-none`}>
         {miniPlayerContent}
@@ -457,13 +457,6 @@ export const AppLayout = () => {
         </div>
       );
     }
-
-    return (
-      <div className={`${theme === 'dark' ? 'dark bg-zinc-950' : 'bg-zinc-50'} flex items-center justify-center h-screen w-screen overflow-hidden select-none border border-zinc-900/10 dark:border-zinc-800/80`}>
-        {miniPlayerContent}
-        <ToastContainer />
-      </div>
-    );
   }
 
   if (isFocusMode) {
@@ -552,6 +545,13 @@ export const AppLayout = () => {
           >
             Iniciar Ya
           </Button>
+        </div>
+      )}
+
+      {/* Floating In-App Pill Overlay when active */}
+      {isCompact && !pipContainer && (
+        <div className="fixed bottom-6 right-6 z-50 shadow-2xl animate-bounce-subtle">
+          {miniPlayerContent}
         </div>
       )}
 

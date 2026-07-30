@@ -1,10 +1,10 @@
 import React from 'react';
-import { Play, Pause, Square, Trash2 } from 'lucide-react';
+import { Play, Pause, Square, Trash2, ExternalLink } from 'lucide-react';
 import { timerStore } from '@/store/timerStore';
 import { Button } from '@shared/components/Button';
 
 export const TimerControls: React.FC = () => {
-  const { isRunning, isPaused, pauseTimer, resumeTimer, stopTimer, cancelTimer } = timerStore();
+  const { isRunning, isPaused, isCompact, setCompact, pauseTimer, resumeTimer, stopTimer, cancelTimer } = timerStore();
 
   if (!isRunning) return null;
 
@@ -41,12 +41,20 @@ export const TimerControls: React.FC = () => {
       </Button>
 
       <Button
+        onClick={() => setCompact(!isCompact)}
+        className="bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 rounded-xl p-2 transition-all flex items-center justify-center border-none cursor-pointer"
+        title="Ventana flotante por delante de otras aplicaciones (Picture-in-Picture)"
+      >
+        <ExternalLink className="w-4 h-4" />
+      </Button>
+
+      <Button
         onClick={() => {
           if (confirm('¿Está seguro que desea cancelar la sesión actual? No se registrará el tiempo en su historial.')) {
             cancelTimer();
           }
         }}
-        className="bg-transparent hover:bg-rose-500/10 text-rose-500 hover:text-rose-400 rounded-xl p-2 transition-all flex items-center justify-center border-none"
+        className="bg-transparent hover:bg-rose-500/10 text-rose-500 hover:text-rose-400 rounded-xl p-2 transition-all flex items-center justify-center border-none cursor-pointer"
         title="Cancelar Sesión"
       >
         <Trash2 className="w-4 h-4" />
