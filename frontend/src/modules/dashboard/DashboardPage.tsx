@@ -27,11 +27,20 @@ import {
 } from 'recharts';
 import { useEffect } from 'react';
 
+import { settingsStore } from '@/store/settingsStore';
+import { currencyStore } from '@/store/currencyStore';
+import { getCurrencySymbol } from '@shared/lib/currency';
+
 export const DashboardPage = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { startTimer, isRunning } = timerStore();
   const { showToast } = toastStore();
+  const { settings } = settingsStore();
+  const { convert } = currencyStore();
+
+  const userCurrency = settings.currency || 'USD';
+  const currencySymbol = getCurrencySymbol(userCurrency);
 
   // Listen to timer stop event to refetch statistics
   useEffect(() => {
@@ -181,10 +190,10 @@ export const DashboardPage = () => {
           <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 rounded-full blur-2xl" />
           <div className="flex justify-between items-start mb-2">
             <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Valor Hoy</span>
-            <Euro className="w-4 h-4 text-emerald-500" />
+            <span className="text-sm font-bold text-emerald-500">{currencySymbol}</span>
           </div>
           <p className="text-2xl font-bold text-zinc-950 dark:text-zinc-100">
-            {indicators?.today?.amount?.toFixed(2) || '0.00'} €
+            {currencySymbol}{convert(indicators?.today?.amount || 0, 'USD', userCurrency).toFixed(2)} <span className="text-xs font-normal text-zinc-500">{userCurrency}</span>
           </p>
           <span className="text-[10px] text-zinc-500 mt-1 block">Generado hoy</span>
         </Card>
@@ -210,10 +219,10 @@ export const DashboardPage = () => {
             <CheckCircle className="w-4 h-4 text-purple-500" />
           </div>
           <p className="text-2xl font-bold text-zinc-950 dark:text-zinc-100">
-            {indicators?.month?.amount?.toFixed(2) || '0.00'} €
+            {currencySymbol}{convert(indicators?.month?.amount || 0, 'USD', userCurrency).toFixed(2)} <span className="text-xs font-normal text-zinc-500">{userCurrency}</span>
           </p>
           <span className="text-[10px] text-zinc-500 mt-1 block">
-            Promedio: {indicators?.month?.averageHourlyRate?.toFixed(2) || '0.00'} €/h
+            Promedio: {currencySymbol}{convert(indicators?.month?.averageHourlyRate || 0, 'USD', userCurrency).toFixed(2)} {userCurrency}/h
           </span>
         </Card>
       </div>

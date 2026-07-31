@@ -5,6 +5,8 @@ import { Card } from '@shared/components/Card';
 import { Button } from '@shared/components/Button';
 import { Target, Save, Edit2 } from 'lucide-react';
 import { CircularProgress } from './CircularProgress';
+import { settingsStore } from '@/store/settingsStore';
+import { getCurrencySymbol } from '@shared/lib/currency';
 
 interface GoalCardProps {
   todayEffectiveHours: number;
@@ -13,6 +15,10 @@ interface GoalCardProps {
 
 export const GoalCard: React.FC<GoalCardProps> = ({ todayEffectiveHours, todayEarnings }) => {
   const queryClient = useQueryClient();
+  const { settings } = settingsStore();
+  const userCurrency = settings.currency || 'USD';
+  const currencySymbol = getCurrencySymbol(userCurrency);
+
   const [isEditing, setIsEditing] = useState(false);
   const [hoursInput, setHoursInput] = useState('8');
   const [amountInput, setAmountInput] = useState('200');
@@ -93,7 +99,7 @@ export const GoalCard: React.FC<GoalCardProps> = ({ todayEffectiveHours, todayEa
             />
           </div>
           <div className="flex flex-col gap-1">
-            <label className="text-[10px] font-semibold text-zinc-400 dark:text-zinc-500">Monto Objetivo (€)</label>
+            <label className="text-[10px] font-semibold text-zinc-400 dark:text-zinc-500">Monto Objetivo ({userCurrency})</label>
             <input
               type="number"
               value={amountInput}
@@ -128,7 +134,7 @@ export const GoalCard: React.FC<GoalCardProps> = ({ todayEffectiveHours, todayEa
             <div className="flex flex-col">
               <div className="flex justify-between items-center text-xs">
                 <span className="font-semibold text-zinc-800 dark:text-zinc-200">Valor Generado</span>
-                <span className="font-bold text-zinc-950 dark:text-white">{todayEarnings.toFixed(2)} € / {targetAmount} €</span>
+                <span className="font-bold text-zinc-950 dark:text-white">{currencySymbol}{todayEarnings.toFixed(2)} / {currencySymbol}{targetAmount} {userCurrency}</span>
               </div>
               <div className="w-full bg-zinc-100 dark:bg-zinc-900 h-1.5 rounded-full mt-1.5 overflow-hidden">
                 <div 
