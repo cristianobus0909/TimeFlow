@@ -54,6 +54,18 @@ class ApiClient {
           response = await fetch(url, { ...options, headers });
         } catch (refreshErr) {
           this.isRefreshing = false;
+
+          // ACTIVE TIMER AUTH SHIELD:
+          // Preserve session and active timer state when timer is running
+          try {
+            const { timerStore } = await import('@/store/timerStore');
+            const isTimerRunning = timerStore.getState().isRunning;
+            if (isTimerRunning) {
+              console.warn('⚠ Refresh token delayed, preserving active session for running timer.');
+              return {} as T;
+            }
+          } catch (e) {}
+
           authStore.getState().clearAuth();
           throw new Error('Su sesión ha expirado. Por favor, inicie sesión de nuevo.');
         }
@@ -86,13 +98,31 @@ class ApiClient {
 
   private async refreshToken(): Promise<string> {
     const url = `${API_URL}/auth/refresh`;
-    // Pass cookies (refresh token)
-    const res = await fetch(url, { method: 'POST', credentials: 'include' });
+    const storedRefreshToken = authStore.getState().refreshToken || localStorage.getItem('tf_refresh_token');
+
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    if (storedRefreshToken) {
+      headers['x-refresh-token'] = storedRefreshToken;
+    }
+
+    const res = await fetch(url, {
+      method: 'POST',
+      headers,
+      body: storedRefreshToken ? JSON.stringify({ refreshToken: storedRefreshToken }) : undefined,
+      credentials: 'include',
+    });
+
     if (!res.ok) {
       throw new Error('Refresh failed');
     }
     const data = await res.json();
-    authStore.getState().setAuth(authStore.getState().user, data.accessToken);
+    authStore.getState().setAuth(
+      authStore.getState().user,
+      data.accessToken,
+      data.refreshToken || storedRefreshToken
+    );
     return data.accessToken;
   }
 

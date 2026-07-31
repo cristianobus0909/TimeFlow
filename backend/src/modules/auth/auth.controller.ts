@@ -67,23 +67,23 @@ export class AuthController {
 
   public refresh = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const token = req.cookies.refreshToken;
+      const token = (req.cookies && req.cookies.refreshToken) || (req.headers['x-refresh-token'] as string) || req.body?.refreshToken;
       if (!token) {
         res.status(401).json({ error: 'Token de actualización no proporcionado.' });
         return;
       }
 
-      const { accessToken } = await this.service.refresh(token);
+      const { accessToken, refreshToken: newRefreshToken } = await this.service.refresh(token);
 
       const isProd = env.NODE_ENV === 'production';
-      res.cookie('refreshToken', token, {
+      res.cookie('refreshToken', newRefreshToken, {
         httpOnly: true,
         secure: isProd,
         sameSite: isProd ? 'none' : 'lax',
         maxAge: 7 * 24 * 60 * 60 * 1000,
       });
 
-      res.status(200).json({ accessToken });
+      res.status(200).json({ accessToken, refreshToken: newRefreshToken });
     } catch (error) {
       next(error);
     }

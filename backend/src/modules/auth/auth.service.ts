@@ -169,7 +169,7 @@ export class AuthService {
     };
   }
 
-  public async refresh(token: string): Promise<{ accessToken: string }> {
+  public async refresh(token: string): Promise<{ accessToken: string; refreshToken: string }> {
     if (!token) {
       throw new AuthenticationError('Token de actualización no proporcionado.');
     }
@@ -185,7 +185,12 @@ export class AuthService {
     }
 
     const newAccessToken = generateAccessToken(user._id.toString());
-    return { accessToken: newAccessToken };
+    const newRefreshToken = generateRefreshToken(user._id.toString());
+
+    user.refreshToken = newRefreshToken;
+    await this.repository.save(user);
+
+    return { accessToken: newAccessToken, refreshToken: newRefreshToken };
   }
 
   public async googleAuth(idToken: string): Promise<{ user: Partial<IUser>; accessToken: string; refreshToken: string }> {
