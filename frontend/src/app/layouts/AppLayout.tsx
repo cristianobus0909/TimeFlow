@@ -281,22 +281,32 @@ export const AppLayout = () => {
 
           setPipContainer(container);
 
-          // Listen for manual window close
+          // Focus PiP floating window and blur main window
+          pipWindow.focus();
+          try {
+            window.blur();
+          } catch (e) {}
+
+          // Listen for manual window close to restore main window focus
           pipWindow.addEventListener('pagehide', () => {
             setCompact(false);
             setPipContainer(null);
             (window as any).pipWindow = null;
+            window.focus();
           });
         } catch (err) {
           console.error('Failed to open Picture-in-Picture window:', err);
         }
       } else {
-        // Close if existing
+        // Close if existing and refocus main window
         if ((window as any).pipWindow) {
-          (window as any).pipWindow.close();
+          try {
+            (window as any).pipWindow.close();
+          } catch (e) {}
           (window as any).pipWindow = null;
         }
         setPipContainer(null);
+        window.focus();
       }
     };
 
@@ -308,6 +318,17 @@ export const AppLayout = () => {
       }
     };
   }, [isCompact, setCompact, theme]);
+
+  const handleMaximize = () => {
+    setCompact(false);
+    if ((window as any).pipWindow) {
+      try {
+        (window as any).pipWindow.close();
+      } catch (e) {}
+      (window as any).pipWindow = null;
+    }
+    window.focus();
+  };
 
   const miniPlayerContent = nextTaskToAutoStart ? (
     <div className="flex items-center gap-3 bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800/80 px-4 py-1.5 rounded-full shadow-lg max-w-sm truncate">
@@ -416,7 +437,7 @@ export const AppLayout = () => {
 
         {/* Toggle back to full screen / maximize */}
         <button
-          onClick={() => setCompact(false)}
+          onClick={handleMaximize}
           title="Modo completo"
           className="p-1 rounded-md text-zinc-550 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200 hover:bg-zinc-200 dark:hover:bg-zinc-800 cursor-pointer"
         >
@@ -445,8 +466,8 @@ export const AppLayout = () => {
               TimeFlow se encuentra minimizado en una ventana flotante "Siempre al frente" (Always-on-Top). Puedes interactuar libremente con ella.
             </p>
             <Button
-              onClick={() => setCompact(false)}
-              className="bg-brand-purple/10 border border-brand-purple/20 hover:bg-brand-purple text-brand-purple hover:text-white px-4 py-1.5 rounded-xl font-bold transition-all text-xs"
+              onClick={handleMaximize}
+              className="bg-brand-purple/10 border border-brand-purple/20 hover:bg-brand-purple text-brand-purple hover:text-white px-4 py-1.5 rounded-xl font-bold transition-all text-xs cursor-pointer"
             >
               Restaurar Ventana Principal
             </Button>
