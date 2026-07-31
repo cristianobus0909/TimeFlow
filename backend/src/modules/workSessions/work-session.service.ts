@@ -37,6 +37,67 @@ export class WorkSessionService {
     return this.repository.findHistory(orgId, filters);
   }
 
+  public async resolveHourlyRate(
+    orgId: string,
+    categoryId?: any,
+    complexity?: string,
+    projectId?: any
+  ): Promise<number> {
+    // 1. Try finding by Category ObjectId & Complexity
+    if (categoryId && Types.ObjectId.isValid(categoryId)) {
+      const rate = await Rate.findOne({
+        organization: new Types.ObjectId(orgId),
+        category: new Types.ObjectId(categoryId),
+        complexity: complexity || 'MEDIUM',
+        active: true,
+      });
+      if (rate && rate.hourlyRate > 0) return rate.hourlyRate;
+    }
+
+    // 2. Try finding by Category Name string matching
+    if (categoryId && typeof categoryId === 'string') {
+      try {
+        const { Category } = await import('../timer/category.model.js');
+        const catDoc = await Category.findOne({
+          name: new RegExp(`^${categoryId}$`, 'i'),
+        });
+        if (catDoc) {
+          const rate = await Rate.findOne({
+            organization: new Types.ObjectId(orgId),
+            category: catDoc._id,
+            active: true,
+          });
+          if (rate && rate.hourlyRate > 0) return rate.hourlyRate;
+        }
+      } catch (e) {
+        // ignore lookup error
+      }
+    }
+
+    // 3. Try finding Project's hourlyRate
+    if (projectId) {
+      const project = await Project.findOne({
+        _id: Types.ObjectId.isValid(projectId) ? new Types.ObjectId(projectId) : projectId,
+        organization: orgId,
+      });
+      if (project && project.hourlyRate && project.hourlyRate > 0) {
+        return project.hourlyRate;
+      }
+    }
+
+    // 4. Try finding ANY active Rate in the organization
+    const anyOrgRate = await Rate.findOne({
+      organization: new Types.ObjectId(orgId),
+      active: true,
+    }).sort({ hourlyRate: -1 });
+    if (anyOrgRate && anyOrgRate.hourlyRate > 0) {
+      return anyOrgRate.hourlyRate;
+    }
+
+    // 5. Fallback default hourly rate for SaaS workspace (25.00 €/h)
+    return 25.0;
+  }
+
   public async startSession(data: StartWorkSessionInput, orgId: string, userId: string): Promise<IWorkSession> {
     // 1. Enforce only one running or paused session per user
     const running = await this.repository.findActiveSession(orgId, userId);
@@ -45,22 +106,7 @@ export class WorkSessionService {
     }
 
     // 2. Resolve hourly rate hierarchy
-    const activeRate = await Rate.findOne({
-      organization: new Types.ObjectId(orgId),
-      category: Types.ObjectId.isValid(data.category) ? new Types.ObjectId(data.category) : undefined as any,
-      complexity: data.complexity,
-      active: true,
-    });
-
-    let resolvedHourlyRate = 0;
-    if (activeRate) {
-      resolvedHourlyRate = activeRate.hourlyRate;
-    } else if (data.project) {
-      const project = await Project.findOne({ _id: data.project, organization: orgId });
-      if (project && project.hourlyRate) {
-        resolvedHourlyRate = project.hourlyRate;
-      }
-    }
+    const resolvedHourlyRate = await this.resolveHourlyRate(orgId, data.category, data.complexity, data.project);
 
     // 3. Create the session
     return this.repository.create({
@@ -73,7 +119,6 @@ export class WorkSessionService {
       task: new Types.ObjectId(data.task),
       taskId: new Types.ObjectId(data.task), // Legacy
       category: Types.ObjectId.isValid(data.category) ? new Types.ObjectId(data.category) : data.category,
-      rate: activeRate ? activeRate._id as any : undefined,
       complexity: data.complexity as any,
       startTime: data.startTime || new Date(),
       notes: data.notes,
@@ -170,13 +215,19 @@ export class WorkSessionService {
     // Calculations
     const duration = Math.max(0, Math.round((now.getTime() - session.startTime.getTime()) / 1000));
     const effectiveDuration = Math.max(0, duration - (session.breakDuration || 0));
+
+    const resolvedRate = session.hourlyRate && session.hourlyRate > 0
+      ? session.hourlyRate
+      : await this.resolveHourlyRate(orgId, session.category, session.complexity, session.project);
+
     const totalAmount = session.billable !== false
-      ? Math.round((effectiveDuration / 3600) * (session.hourlyRate || 0) * 100) / 100
+      ? Math.round((effectiveDuration / 3600) * resolvedRate * 100) / 100
       : 0;
 
     session.endTime = now;
     session.duration = duration;
     session.effectiveDuration = effectiveDuration;
+    session.hourlyRate = resolvedRate;
     session.totalAmount = totalAmount;
     session.status = 'COMPLETED';
     session.isCompleted = true; // Legacy compatibility
@@ -293,10 +344,18 @@ export class WorkSessionService {
       startTime: { $gte: startOfToday, $lte: endOfToday },
     });
 
+    const calcSessionAmount = (s: any) => {
+      if (s.billable === false) return 0;
+      if (s.totalAmount && s.totalAmount > 0) return s.totalAmount;
+      const rate = s.hourlyRate && s.hourlyRate > 0 ? s.hourlyRate : 25;
+      const durationHours = (s.effectiveDuration || s.duration || 0) / 3600;
+      return Math.round(durationHours * rate * 100) / 100;
+    };
+
     const todayHours = todaySessions.reduce((sum: number, s: any) => sum + (s.duration || 0), 0) / 3600;
     const todayEffectiveHours = todaySessions.reduce((sum: number, s: any) => sum + (s.effectiveDuration || 0), 0) / 3600;
     const todayBreakHours = todaySessions.reduce((sum: number, s: any) => sum + (s.breakDuration || 0), 0) / 3600;
-    const todayAmount = todaySessions.reduce((sum: number, s: any) => sum + (s.totalAmount || 0), 0);
+    const todayAmount = todaySessions.reduce((sum: number, s: any) => sum + calcSessionAmount(s), 0);
     const todayCount = todaySessions.length;
 
     // 2. WEEKLY Indicators (Last 7 days, starting from Sunday)
@@ -312,7 +371,7 @@ export class WorkSessionService {
     });
 
     const weekHours = weekSessions.reduce((sum: number, s: any) => sum + (s.effectiveDuration || 0), 0) / 3600;
-    const weekAmount = weekSessions.reduce((sum: number, s: any) => sum + (s.totalAmount || 0), 0);
+    const weekAmount = weekSessions.reduce((sum: number, s: any) => sum + calcSessionAmount(s), 0);
     const weekDaysCount = Math.max(1, now.getDay() + 1); // count days of current week
     const weekDailyAvgHours = weekHours / weekDaysCount;
 
@@ -327,7 +386,7 @@ export class WorkSessionService {
     });
 
     const monthHours = monthSessions.reduce((sum: number, s: any) => sum + (s.effectiveDuration || 0), 0) / 3600;
-    const monthAmount = monthSessions.reduce((sum: number, s: any) => sum + (s.totalAmount || 0), 0);
+    const monthAmount = monthSessions.reduce((sum: number, s: any) => sum + calcSessionAmount(s), 0);
     const monthAvgHourlyRate = monthHours > 0 ? monthAmount / monthHours : 0;
 
     return {
@@ -383,22 +442,7 @@ export class WorkSessionService {
   }
 
   public async logCompletedSession(data: any, orgId: string, userId: string): Promise<IWorkSession> {
-    const activeRate = await Rate.findOne({
-      organization: new Types.ObjectId(orgId),
-      category: Types.ObjectId.isValid(data.category) ? new Types.ObjectId(data.category) : undefined as any,
-      complexity: data.complexity || 'MEDIUM',
-      active: true,
-    });
-
-    let resolvedHourlyRate = 0;
-    if (activeRate) {
-      resolvedHourlyRate = activeRate.hourlyRate;
-    } else if (data.project) {
-      const project = await Project.findOne({ _id: data.project, organization: orgId });
-      if (project && project.hourlyRate) {
-        resolvedHourlyRate = project.hourlyRate;
-      }
-    }
+    const resolvedHourlyRate = await this.resolveHourlyRate(orgId, data.category, data.complexity, data.project);
 
     const duration = data.duration || 0;
     const breakDuration = data.breakDuration || 0;
@@ -417,7 +461,6 @@ export class WorkSessionService {
       task: new Types.ObjectId(data.task),
       taskId: new Types.ObjectId(data.task),
       category: Types.ObjectId.isValid(data.category) ? new Types.ObjectId(data.category) : data.category,
-      rate: activeRate ? activeRate._id as any : undefined,
       complexity: data.complexity || 'MEDIUM',
       startTime: data.startTime || new Date(),
       endTime: data.endTime || new Date(),
