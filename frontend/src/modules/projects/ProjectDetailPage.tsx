@@ -48,6 +48,7 @@ export const ProjectDetailPage = () => {
   const [editDescription, setEditDescription] = useState('');
   const [editClient, setEditClient] = useState('');
   const [editPriority, setEditPriority] = useState('medium');
+  const [editHourlyRate, setEditHourlyRate] = useState('');
   const [editStartDate, setEditStartDate] = useState('');
   const [editEndDate, setEditEndDate] = useState('');
   const [editColor, setEditColor] = useState('#10B981');
@@ -131,6 +132,7 @@ export const ProjectDetailPage = () => {
       setEditDescription(project.description || '');
       setEditClient(typeof project.client === 'object' ? (project.client._id || project.client.name) : (project.client || ''));
       setEditPriority(project.priority || 'medium');
+      setEditHourlyRate(project.hourlyRate !== undefined ? String(project.hourlyRate) : '');
       setEditStartDate(project.startDate ? new Date(project.startDate).toISOString().split('T')[0] : '');
       setEditEndDate(project.endDate ? new Date(project.endDate).toISOString().split('T')[0] : '');
       setEditColor(project.color || '#10B981');
@@ -734,15 +736,16 @@ export const ProjectDetailPage = () => {
             updateProjectMutation.mutate({
               name: editName,
               description: editDescription,
-              client: editClient,
+              client: editClient || undefined,
               priority: editPriority,
-              startDate: editStartDate,
-              endDate: editEndDate,
+              hourlyRate: editHourlyRate ? parseFloat(editHourlyRate) : undefined,
+              startDate: editStartDate || undefined,
+              endDate: editEndDate || undefined,
               color: editColor,
               notes: editNotes,
             });
           }}
-          className="flex flex-col gap-4 text-xs"
+          className="flex flex-col gap-4"
         >
           <Input
             label="Nombre del Proyecto"
@@ -776,18 +779,14 @@ export const ProjectDetailPage = () => {
               </select>
             </div>
 
-            <div className="flex flex-col gap-1.5 text-left">
-              <span className="text-xs font-semibold text-zinc-400 uppercase">Prioridad</span>
-              <select
-                className="bg-zinc-900 border border-zinc-800 focus:border-brand-purple text-zinc-100 rounded-xl px-3 py-2 text-xs outline-none w-full"
-                value={editPriority}
-                onChange={(e) => setEditPriority(e.target.value)}
-              >
-                <option value="low">Baja</option>
-                <option value="medium">Media</option>
-                <option value="high">Alta</option>
-              </select>
-            </div>
+            <Input
+              label="Tarifa Horaria (€/h o $/h)"
+              type="number"
+              step="0.5"
+              placeholder="ej. 35.00"
+              value={editHourlyRate}
+              onChange={(e) => setEditHourlyRate(e.target.value)}
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-4">

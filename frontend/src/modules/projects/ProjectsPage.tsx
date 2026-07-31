@@ -18,6 +18,7 @@ const projectSchema = z.object({
   description: z.string().optional(),
   priority: z.string().default('medium'),
   client: z.string().optional(),
+  hourlyRate: z.coerce.number().optional(),
   startDate: z.string().optional(),
   endDate: z.string().optional(),
   color: z.string().default('#10B981'),
@@ -320,6 +321,17 @@ export const ProjectsPage = () => {
               </select>
             </div>
 
+            <Input
+              label="Tarifa Horaria (€/h o $/h)"
+              type="number"
+              step="0.5"
+              placeholder="ej. 35.00"
+              error={errors.hourlyRate?.message as string}
+              {...register('hourlyRate')}
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
             <div className="flex flex-col gap-1.5">
               <label className="text-xs font-semibold text-zinc-400 uppercase">Prioridad</label>
               <select
@@ -331,9 +343,6 @@ export const ProjectsPage = () => {
                 <option value="HIGH">Alta</option>
               </select>
             </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
             <Input
               label="Fecha Inicio"
               type="date"

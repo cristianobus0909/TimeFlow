@@ -7,6 +7,7 @@ export interface UserSettings {
   language: 'es' | 'en';
   theme: 'dark' | 'light';
   currency: string;
+  defaultHourlyRate: number;
   timezone: string;
   timeFormat: '12h' | '24h';
   soundAlerts: boolean;
@@ -25,6 +26,7 @@ const defaultSettings: UserSettings = {
   language: 'es',
   theme: 'dark',
   currency: guessCurrencyFromTimezone(),
+  defaultHourlyRate: 25.0,
   timezone: 'UTC',
   timeFormat: '24h',
   soundAlerts: true,

@@ -326,6 +326,33 @@ export const SettingsPage = () => {
             </select>
           </div>
 
+          {/* Default Hourly Rate input */}
+          <div className="flex justify-between items-center bg-zinc-950 p-4 rounded-xl border border-zinc-900 md:col-span-2">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-900 text-emerald-500">
+                <DollarSign className="w-4 h-4" />
+              </div>
+              <div className="flex flex-col text-left">
+                <span className="font-semibold text-zinc-200">Tarifa Hora Base por Defecto</span>
+                <span className="text-[10px] text-zinc-500 mt-0.5">Monto cobrado por hora cuando un proyecto o tarea no tiene tarifa específica.</span>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                type="number"
+                step="0.5"
+                min="0"
+                value={settings.defaultHourlyRate || 25}
+                onChange={(e) => {
+                  const rate = parseFloat(e.target.value) || 0;
+                  updateSettings({ defaultHourlyRate: rate });
+                }}
+                className="w-28 bg-zinc-900 border border-zinc-800 text-zinc-200 font-mono font-bold rounded-xl px-3 py-1.5 text-xs text-right outline-none focus:border-brand-purple"
+              />
+              <span className="text-xs font-semibold text-zinc-400">{settings.currency || 'USD'}/h</span>
+            </div>
+          </div>
+
           {/* Onboarding Guide toggle / reset */}
           <div className="flex justify-between items-center bg-zinc-950 p-4 rounded-xl border border-zinc-900 md:col-span-2">
             <div className="flex items-center gap-3">
