@@ -319,7 +319,8 @@ export const ProjectDetailPage = () => {
   }
 
   // Allow all tasks to be addable since we support duplicate tasks inside projects
-  const addableTasks = allTasks;
+  const taskList = Array.isArray(allTasks) ? allTasks : (allTasks as any)?.tasks || [];
+  const addableTasks = taskList;
 
   return (
     <div className="flex flex-col gap-8 select-text">
@@ -691,8 +692,8 @@ export const ProjectDetailPage = () => {
                   className="flex items-center justify-between p-3 rounded-xl bg-zinc-950 border border-zinc-900 text-xs font-semibold text-zinc-300 w-full"
                 >
                   <span className="flex items-center gap-2.5 truncate">
-                    <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: t.color }} />
-                    {t.name}
+                    <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: t.color || '#7C3AED' }} />
+                    {t.title || t.name}
                   </span>
 
                   <div className="flex items-center gap-2.5">
