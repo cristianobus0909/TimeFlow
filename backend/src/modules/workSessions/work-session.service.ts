@@ -9,7 +9,8 @@ import { ProjectTask } from '@modules/tasks/project-task.model';
 import { ProjectService } from '@modules/projects/project.service';
 import { StatsService } from '@modules/analytics/stats.service';
 import { NotFoundError, ValidationError, AuthorizationError } from '@core/errors/classes';
-import { Setting } from '@modules/settings/setting.model';
+import { Types } from 'mongoose';
+import { Settings } from '@modules/settings/settings.model';
 
 const extractId = (val: any): string => {
   if (!val) return '';
@@ -96,9 +97,9 @@ export class WorkSessionService {
 
     // 5. Try finding user/organization defaultHourlyRate from settings
     try {
-      const settings = await Setting.findOne({ organization: new Types.ObjectId(orgId) });
-      if (settings && settings.defaultHourlyRate && settings.defaultHourlyRate > 0) {
-        return settings.defaultHourlyRate;
+      const userSettings = await Settings.findOne({ userId: new Types.ObjectId(orgId) });
+      if (userSettings && (userSettings as any).defaultHourlyRate && (userSettings as any).defaultHourlyRate > 0) {
+        return (userSettings as any).defaultHourlyRate;
       }
     } catch (e) {}
 
