@@ -27,6 +27,13 @@ export const SettingsPage = () => {
   }, [loadSettings]);
 
   const [orgName, setOrgName] = useState('');
+  const [baseRateInput, setBaseRateInput] = useState(String(settings.defaultHourlyRate || 25));
+
+  useEffect(() => {
+    if (settings.defaultHourlyRate !== undefined) {
+      setBaseRateInput(String(settings.defaultHourlyRate));
+    }
+  }, [settings.defaultHourlyRate]);
 
   // Fetch active organization
   const { data: organization, refetch: refetchOrg } = useQuery({
@@ -337,20 +344,28 @@ export const SettingsPage = () => {
                 <span className="text-[10px] text-zinc-500 mt-0.5">Monto cobrado por hora cuando un proyecto o tarea no tiene tarifa específica.</span>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                const rateVal = parseFloat(baseRateInput) || 0;
+                updateSettings({ defaultHourlyRate: rateVal });
+                showToast(`Tarifa base por defecto guardada: $${rateVal.toFixed(2)} ${settings.currency || 'USD'}/h.`);
+              }}
+              className="flex items-center gap-2"
+            >
               <input
                 type="number"
                 step="0.5"
                 min="0"
-                value={settings.defaultHourlyRate || 25}
-                onChange={(e) => {
-                  const rate = parseFloat(e.target.value) || 0;
-                  updateSettings({ defaultHourlyRate: rate });
-                }}
+                value={baseRateInput}
+                onChange={(e) => setBaseRateInput(e.target.value)}
                 className="w-28 bg-zinc-900 border border-zinc-800 text-zinc-200 font-mono font-bold rounded-xl px-3 py-1.5 text-xs text-right outline-none focus:border-brand-purple"
               />
               <span className="text-xs font-semibold text-zinc-400">{settings.currency || 'USD'}/h</span>
-            </div>
+              <Button type="submit" size="sm" className="ml-1 py-1.5 px-3.5 text-xs font-bold">
+                Guardar
+              </Button>
+            </form>
           </div>
 
           {/* Onboarding Guide toggle / reset */}

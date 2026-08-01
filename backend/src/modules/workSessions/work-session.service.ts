@@ -9,7 +9,7 @@ import { ProjectTask } from '@modules/tasks/project-task.model';
 import { ProjectService } from '@modules/projects/project.service';
 import { StatsService } from '@modules/analytics/stats.service';
 import { NotFoundError, ValidationError, AuthorizationError } from '@core/errors/classes';
-import { Types } from 'mongoose';
+import { Setting } from '@modules/settings/setting.model';
 
 const extractId = (val: any): string => {
   if (!val) return '';
@@ -94,7 +94,15 @@ export class WorkSessionService {
       return anyOrgRate.hourlyRate;
     }
 
-    // 5. Fallback default hourly rate for SaaS workspace (25.00 €/h)
+    // 5. Try finding user/organization defaultHourlyRate from settings
+    try {
+      const settings = await Setting.findOne({ organization: new Types.ObjectId(orgId) });
+      if (settings && settings.defaultHourlyRate && settings.defaultHourlyRate > 0) {
+        return settings.defaultHourlyRate;
+      }
+    } catch (e) {}
+
+    // Fallback default hourly rate for SaaS workspace (25.00 €/h)
     return 25.0;
   }
 
