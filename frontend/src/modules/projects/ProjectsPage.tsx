@@ -335,7 +335,7 @@ export const ProjectsPage = () => {
             </div>
 
             <Input
-              label="Tarifa Horaria (€/h o $/h)"
+              label={`Tarifa Horaria (${userCurrency}/h)`}
               type="number"
               step="0.5"
               placeholder="ej. 35.00"
