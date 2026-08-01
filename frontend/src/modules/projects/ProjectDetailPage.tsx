@@ -62,6 +62,13 @@ export const ProjectDetailPage = () => {
   const [editColor, setEditColor] = useState('#10B981');
   const [editNotes, setEditNotes] = useState('');
   const [quantities, setQuantities] = useState<Record<string, number>>({});
+  const [taskCategoryFilter, setTaskCategoryFilter] = useState('ALL');
+
+  // Fetch Categories List
+  const { data: dbCategories = [] } = useQuery({
+    queryKey: ['categories'],
+    queryFn: () => api.get('/categories').catch(() => []),
+  });
 
   // Edit Task State
   const [editingTask, setEditingTask] = useState<any | null>(null);
@@ -320,7 +327,11 @@ export const ProjectDetailPage = () => {
 
   // Allow all tasks to be addable since we support duplicate tasks inside projects
   const taskList = Array.isArray(allTasks) ? allTasks : (allTasks as any)?.tasks || [];
-  const addableTasks = taskList;
+  const addableTasks = taskList.filter((t: any) => {
+    if (taskCategoryFilter === 'ALL') return true;
+    const catVal = typeof t.category === 'object' ? (t.category?._id || t.category?.name) : t.category;
+    return String(catVal) === String(taskCategoryFilter) || String(t.category?.name || t.category) === String(taskCategoryFilter);
+  });
 
   return (
     <div className="flex flex-col gap-8 select-text">
@@ -679,9 +690,26 @@ export const ProjectDetailPage = () => {
       {/* Add Tasks Modal */}
       <Modal isOpen={isAddTasksOpen} onClose={() => setIsAddTasksOpen(false)} title="Agregar Tareas al Proyecto">
         <div className="flex flex-col gap-3">
-          <p className="text-xs text-zinc-500 mb-4">
+          <p className="text-xs text-zinc-500 mb-1">
             Selecciona de tu lista de tareas repetitivas para incorporarlas al presupuesto estimado de este proyecto.
           </p>
+
+          {/* Category Filter */}
+          <div className="flex items-center justify-between bg-zinc-950 p-2.5 rounded-xl border border-zinc-900 mb-2">
+            <span className="text-xs font-semibold text-zinc-400">Filtrar por Categoría:</span>
+            <select
+              value={taskCategoryFilter}
+              onChange={(e) => setTaskCategoryFilter(e.target.value)}
+              className="bg-zinc-900 border border-zinc-800 text-zinc-200 rounded-lg px-3 py-1.5 text-xs outline-none focus:border-brand-purple"
+            >
+              <option value="ALL">Todas las Categorías</option>
+              {dbCategories.map((c: any) => (
+                <option key={c._id || c.name} value={c._id || c.name}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </div>
 
           <div className="flex flex-col gap-2 max-h-[300px] overflow-y-auto pr-1">
             {addableTasks.map((t: any) => {
