@@ -347,10 +347,10 @@ export const ProjectDetailPage = () => {
               </span>
             )}
             <span className="text-xs font-mono font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-0.5 rounded-lg">
-              Tarifa: {currencySymbol}{convert(project.hourlyRate || defaultRate, 'USD', userCurrency).toFixed(2)} {userCurrency}/h
+              Tarifa: {currencySymbol}{convert(project.hourlyRate || defaultRate, userCurrency, userCurrency).toFixed(2)} {userCurrency}/h
             </span>
             <span className="text-xs font-mono font-bold text-violet-400 bg-violet-500/10 border border-violet-500/20 px-2.5 py-0.5 rounded-lg">
-              Valor Generado: {currencySymbol}{convert(((project.accumulatedDuration || 0) / 3600) * (project.hourlyRate || defaultRate), 'USD', userCurrency).toFixed(2)} {userCurrency}
+              Valor Generado: {currencySymbol}{convert(((project.accumulatedDuration || 0) / 3600) * (project.hourlyRate || defaultRate), userCurrency, userCurrency).toFixed(2)} {userCurrency}
             </span>
           </div>
         </div>

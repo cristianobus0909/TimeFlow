@@ -71,8 +71,8 @@ export const FocusPage: React.FC = () => {
   const amountAchieved = focusOverview?.dailyProgress?.amount?.achieved || 0;
   const rawHourlyRate = currentSession?.hourlyRate || 0;
   const sessionEarningsRaw = (seconds / 3600) * rawHourlyRate;
-  const sessionEarnings = convert(sessionEarningsRaw, 'USD', userCurrency);
-  const totalTodayEarnings = convert(amountAchieved + (isRunning ? sessionEarningsRaw : 0), 'USD', userCurrency);
+  const sessionEarnings = convert(sessionEarningsRaw, userCurrency, userCurrency);
+  const totalTodayEarnings = convert(amountAchieved + (isRunning ? sessionEarningsRaw : 0), userCurrency, userCurrency);
 
   const handleStop = async () => {
     try {

@@ -234,7 +234,7 @@ export const ProjectsPage = () => {
                   </span>
                 )}
                 <span className="text-[10px] font-mono font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-lg">
-                  {currencySymbol}{convert(project.hourlyRate || defaultRate, 'USD', userCurrency).toFixed(2)} {userCurrency}/h
+                  {currencySymbol}{convert(project.hourlyRate || defaultRate, userCurrency, userCurrency).toFixed(2)} {userCurrency}/h
                 </span>
               </div>
               {project.description && (
