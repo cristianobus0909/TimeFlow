@@ -341,6 +341,7 @@ export class WorkSessionService {
       organization: orgObjectId,
       user: userObjectId,
       status: 'COMPLETED',
+      isDeleted: { $ne: true },
       startTime: { $gte: startOfToday, $lte: endOfToday },
     });
 
@@ -367,6 +368,7 @@ export class WorkSessionService {
       organization: orgObjectId,
       user: userObjectId,
       status: 'COMPLETED',
+      isDeleted: { $ne: true },
       startTime: { $gte: startOfWeek },
     });
 
@@ -382,6 +384,7 @@ export class WorkSessionService {
       organization: orgObjectId,
       user: userObjectId,
       status: 'COMPLETED',
+      isDeleted: { $ne: true },
       startTime: { $gte: startOfMonth },
     });
 

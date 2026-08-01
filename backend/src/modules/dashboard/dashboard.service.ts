@@ -11,6 +11,14 @@ export class DashboardService {
     const orgObjectId = new Types.ObjectId(orgId);
     const now = new Date();
 
+    const calcSessionAmount = (s: any) => {
+      if (s.billable === false) return 0;
+      if (s.totalAmount && s.totalAmount > 0) return s.totalAmount;
+      const rate = s.hourlyRate && s.hourlyRate > 0 ? s.hourlyRate : 25;
+      const durationHours = (s.effectiveDuration || s.duration || 0) / 3600;
+      return Math.round(durationHours * rate * 100) / 100;
+    };
+
     // 1. Fetch Today Completed Sessions (00:00:00 to 23:59:59 local boundaries)
     const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
@@ -19,13 +27,14 @@ export class DashboardService {
       organization: orgObjectId,
       user: userObjectId,
       status: 'COMPLETED',
+      isDeleted: { $ne: true },
       startTime: { $gte: startOfToday, $lte: endOfToday },
     }).populate('project').populate('task');
 
     const todayHours = todaySessions.reduce((sum: number, s: any) => sum + (s.duration || 0), 0) / 3600;
     const todayEffectiveHours = todaySessions.reduce((sum: number, s: any) => sum + (s.effectiveDuration || 0), 0) / 3600;
     const todayBreakHours = todaySessions.reduce((sum: number, s: any) => sum + (s.breakDuration || 0), 0) / 3600;
-    const todayAmount = todaySessions.reduce((sum: number, s: any) => sum + (s.totalAmount || 0), 0);
+    const todayAmount = todaySessions.reduce((sum: number, s: any) => sum + calcSessionAmount(s), 0);
     const todayCount = todaySessions.length;
 
     // 2. Fetch Active Session
@@ -33,6 +42,7 @@ export class DashboardService {
       organization: orgObjectId,
       user: userObjectId,
       status: { $in: ['RUNNING', 'PAUSED'] },
+      isDeleted: { $ne: true },
     }).populate('project').populate('task').populate('client');
 
     // 3. Fetch Today's Daily Goal
@@ -53,17 +63,19 @@ export class DashboardService {
       organization: orgObjectId,
       user: userObjectId,
       status: 'COMPLETED',
+      isDeleted: { $ne: true },
       startTime: { $gte: startOfWeek },
     });
-    const weekAmount = weekSessions.reduce((sum: number, s: any) => sum + (s.totalAmount || 0), 0);
+    const weekAmount = weekSessions.reduce((sum: number, s: any) => sum + calcSessionAmount(s), 0);
 
     const monthSessions = await WorkSession.find({
       organization: orgObjectId,
       user: userObjectId,
       status: 'COMPLETED',
+      isDeleted: { $ne: true },
       startTime: { $gte: startOfMonth },
     });
-    const monthAmount = monthSessions.reduce((sum: number, s: any) => sum + (s.totalAmount || 0), 0);
+    const monthAmount = monthSessions.reduce((sum: number, s: any) => sum + calcSessionAmount(s), 0);
 
     // 5. Category/Productivity Breakdown for Today
     const categoryBreakdownMap = new Map<string, { duration: number; name: string }>();
