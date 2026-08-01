@@ -56,7 +56,9 @@ export const ProjectDetailPage = () => {
   const [editDescription, setEditDescription] = useState('');
   const [editClient, setEditClient] = useState('');
   const [editPriority, setEditPriority] = useState('medium');
-  const [editHourlyRate, setEditHourlyRate] = useState('');
+  const editHourlyRateState = useState('');
+  const [editHourlyRate, setEditHourlyRate] = editHourlyRateState;
+  const [editCurrency, setEditCurrency] = useState('USD');
   const [editStartDate, setEditStartDate] = useState('');
   const [editEndDate, setEditEndDate] = useState('');
   const [editColor, setEditColor] = useState('#10B981');
@@ -148,6 +150,7 @@ export const ProjectDetailPage = () => {
       setEditClient(typeof project.client === 'object' ? (project.client._id || project.client.name) : (project.client || ''));
       setEditPriority(project.priority || 'medium');
       setEditHourlyRate(project.hourlyRate !== undefined ? String(project.hourlyRate) : '');
+      setEditCurrency(project.currency || userCurrency || 'USD');
       setEditStartDate(project.startDate ? new Date(project.startDate).toISOString().split('T')[0] : '');
       setEditEndDate(project.endDate ? new Date(project.endDate).toISOString().split('T')[0] : '');
       setEditColor(project.color || '#10B981');
@@ -806,6 +809,7 @@ export const ProjectDetailPage = () => {
               client: editClient || undefined,
               priority: editPriority,
               hourlyRate: editHourlyRate ? parseFloat(editHourlyRate) : undefined,
+              currency: editCurrency,
               startDate: editStartDate || undefined,
               endDate: editEndDate || undefined,
               color: editColor,
@@ -846,14 +850,33 @@ export const ProjectDetailPage = () => {
               </select>
             </div>
 
+          <div className="grid grid-cols-2 gap-4">
+            <div className="flex flex-col gap-1.5 text-left">
+              <span className="text-xs font-semibold text-zinc-400 uppercase">Moneda del Proyecto</span>
+              <select
+                className="bg-zinc-900 border border-zinc-800 focus:border-brand-purple text-zinc-100 rounded-xl px-3 py-2 text-xs outline-none w-full"
+                value={editCurrency}
+                onChange={(e) => setEditCurrency(e.target.value)}
+              >
+                <option value="USD">Dólar ($ USD)</option>
+                <option value="EUR">Euro (€ EUR)</option>
+                <option value="ARS">Peso Arg ($ ARS)</option>
+                <option value="MXN">Peso Mex ($ MXN)</option>
+                <option value="COP">Peso Col ($ COP)</option>
+                <option value="CLP">Peso Chi ($ CLP)</option>
+                <option value="PEN">Sol Per (S/. PEN)</option>
+              </select>
+            </div>
+
             <Input
-              label={`Tarifa Horaria (${userCurrency}/h)`}
+              label={`Tarifa Horaria (${editCurrency}/h)`}
               type="number"
               step="0.5"
-              placeholder="ej. 35.00"
+              placeholder="ej. 7500.00"
               value={editHourlyRate}
               onChange={(e) => setEditHourlyRate(e.target.value)}
             />
+          </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">

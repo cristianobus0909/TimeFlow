@@ -11,6 +11,7 @@ export interface IProject extends Document, IAuditFields, ISoftDeleteFields {
   budgetHours?: number;
   budgetAmount?: number;
   hourlyRate?: number;
+  currency?: string;
   startDate?: Date;
   endDate?: Date;
   estimatedCompletion?: Date;
@@ -43,6 +44,7 @@ const ProjectSchema = new Schema<IProject>(
     budgetHours: { type: Number, min: 0 },
     budgetAmount: { type: Number, min: 0 },
     hourlyRate: { type: Number, min: 0 },
+    currency: { type: String, default: 'USD' },
     startDate: { type: Date },
     endDate: { type: Date },
     estimatedCompletion: { type: Date },

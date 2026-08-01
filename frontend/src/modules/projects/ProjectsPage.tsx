@@ -22,6 +22,7 @@ const projectSchema = z.object({
   priority: z.string().default('medium'),
   client: z.string().optional(),
   hourlyRate: z.coerce.number().optional(),
+  currency: z.string().optional(),
   startDate: z.string().optional(),
   endDate: z.string().optional(),
   color: z.string().default('#10B981'),
@@ -71,6 +72,7 @@ export const ProjectsPage = () => {
     defaultValues: {
       priority: 'medium',
       color: '#10B981',
+      currency: userCurrency,
     },
   });
 
@@ -334,11 +336,27 @@ export const ProjectsPage = () => {
               </select>
             </div>
 
+            <div className="flex flex-col gap-1.5 text-left">
+              <label className="text-xs font-semibold text-zinc-400 uppercase">Moneda del Proyecto</label>
+              <select
+                className="bg-zinc-900 border border-zinc-800 focus:border-brand-purple text-zinc-100 rounded-xl px-3 py-2 text-sm outline-none"
+                {...register('currency')}
+              >
+                <option value="USD">Dólar ($ USD)</option>
+                <option value="EUR">Euro (€ EUR)</option>
+                <option value="ARS">Peso Arg ($ ARS)</option>
+                <option value="MXN">Peso Mex ($ MXN)</option>
+                <option value="COP">Peso Col ($ COP)</option>
+                <option value="CLP">Peso Chi ($ CLP)</option>
+                <option value="PEN">Sol Per (S/. PEN)</option>
+              </select>
+            </div>
+
             <Input
-              label={`Tarifa Horaria (${userCurrency}/h)`}
+              label="Tarifa Horaria"
               type="number"
               step="0.5"
-              placeholder="ej. 35.00"
+              placeholder="ej. 7500.00"
               error={errors.hourlyRate?.message as string}
               {...register('hourlyRate')}
             />
