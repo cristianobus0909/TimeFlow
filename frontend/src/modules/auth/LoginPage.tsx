@@ -38,6 +38,13 @@ export const LoginPage = () => {
   };
 
   useEffect(() => {
+    if (typeof window !== 'undefined' && window.location.search.includes('expired=true')) {
+      showToast('Tu sesión ha expirado por seguridad. Por favor, inicia sesión nuevamente.', 'info');
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, []);
+
+  useEffect(() => {
     let active = true;
     
     // Register current active login callback globally

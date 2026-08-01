@@ -67,7 +67,10 @@ class ApiClient {
           } catch (e) {}
 
           authStore.getState().clearAuth();
-          throw new Error('Su sesión ha expirado. Por favor, inicie sesión de nuevo.');
+          if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
+            window.location.href = '/login?expired=true';
+          }
+          return {} as T;
         }
       } else {
         // Wait for the token to be refreshed (for parallel requests)
