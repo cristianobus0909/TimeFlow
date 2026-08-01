@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -325,8 +325,28 @@ export const ProjectDetailPage = () => {
     );
   }
 
-  // Allow all tasks to be addable since we support duplicate tasks inside projects
+  // Extract categories 100% dynamically from database and active tasks (Zero hardcoding)
   const taskList = Array.isArray(allTasks) ? allTasks : (allTasks as any)?.tasks || [];
+
+  const dynamicCategories = useMemo(() => {
+    const map = new Map<string, string>();
+    dbCategories.forEach((c: any) => {
+      if (c && c.name) {
+        map.set(String(c._id || c.name), String(c.name));
+      }
+    });
+    taskList.forEach((t: any) => {
+      if (t && t.category) {
+        const catName = typeof t.category === 'object' ? t.category.name : String(t.category);
+        const catId = typeof t.category === 'object' ? (t.category._id || t.category.name) : String(t.category);
+        if (catName && !map.has(catId)) {
+          map.set(catId, catName);
+        }
+      }
+    });
+    return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
+  }, [dbCategories, taskList]);
+
   const addableTasks = taskList.filter((t: any) => {
     if (taskCategoryFilter === 'ALL') return true;
     const catVal = typeof t.category === 'object' ? (t.category?._id || t.category?.name) : t.category;
@@ -703,8 +723,8 @@ export const ProjectDetailPage = () => {
               className="bg-zinc-900 border border-zinc-800 text-zinc-200 rounded-lg px-3 py-1.5 text-xs outline-none focus:border-brand-purple"
             >
               <option value="ALL">Todas las Categorías</option>
-              {dbCategories.map((c: any) => (
-                <option key={c._id || c.name} value={c._id || c.name}>
+              {dynamicCategories.map((c) => (
+                <option key={c.id} value={c.id}>
                   {c.name}
                 </option>
               ))}
