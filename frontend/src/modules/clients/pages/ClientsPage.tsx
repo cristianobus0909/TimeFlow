@@ -8,6 +8,9 @@ import { Card } from '@shared/components/Card';
 import { Input } from '@shared/components/Input';
 import { Modal } from '@shared/components/Modal';
 import { toastStore } from '@/store/toastStore';
+import { settingsStore } from '@/store/settingsStore';
+import { currencyStore } from '@/store/currencyStore';
+import { getCurrencySymbol } from '@shared/lib/currency';
 
 export const ClientsPage: React.FC = () => {
   const navigate = useNavigate();
@@ -29,10 +32,22 @@ export const ClientsPage: React.FC = () => {
     color: '#7C3AED',
   });
 
+  const { settings } = settingsStore();
+  const { convert } = currencyStore();
+  const userCurrency = settings.currency || 'USD';
+  const currencySymbol = getCurrencySymbol(userCurrency);
+  const defaultRate = settings.defaultHourlyRate || 25;
+
   // Query Clients List
   const { data: clients = [], isLoading } = useQuery({
     queryKey: ['clients'],
     queryFn: () => api.get('/clients'),
+  });
+
+  // Query Projects List to compute client metrics
+  const { data: projects = [] } = useQuery({
+    queryKey: ['projects'],
+    queryFn: () => api.get('/projects'),
   });
 
   // Create Client Mutation
@@ -125,51 +140,70 @@ export const ClientsPage: React.FC = () => {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredClients.map((client: any) => (
-            <Card
-              key={client._id}
-              hoverable
-              onClick={() => navigate(`/clients/${client._id}`)}
-              className="flex flex-col gap-6 relative group cursor-pointer"
-            >
-              {/* Top Accent Line */}
-              <div className="absolute top-0 left-0 w-full h-1" style={{ backgroundColor: client.color }} />
+          {filteredClients.map((client: any) => {
+            const clientProjects = projects.filter((p: any) => {
+              if (!p.client) return false;
+              const pClientId = typeof p.client === 'object' ? p.client._id : p.client;
+              const pClientName = typeof p.client === 'object' ? (p.client.name || p.client.company) : p.client;
+              return (
+                (pClientId && String(pClientId) === String(client._id)) ||
+                (pClientName && client.name && pClientName.trim().toLowerCase() === client.name.trim().toLowerCase())
+              );
+            });
 
-              <div className="flex justify-between items-start gap-4">
-                <div>
-                  <h3 className="text-sm font-bold text-zinc-200 group-hover:text-brand-purple transition-all">
-                    {client.name}
-                  </h3>
-                  {client.company && (
-                    <div className="flex items-center gap-1.5 mt-1 text-zinc-500 text-[10px] font-semibold">
-                      <Building className="w-3 h-3 text-zinc-600" />
-                      <span>{client.company}</span>
-                    </div>
-                  )}
+            const totalWorkedSeconds = clientProjects.reduce((acc: number, p: any) => acc + (p.accumulatedDuration || 0), 0);
+            const totalHours = totalWorkedSeconds / 3600;
+            const totalEarnedConverted = clientProjects.reduce((acc: number, p: any) => {
+              const pRate = p.hourlyRate !== undefined ? p.hourlyRate : defaultRate;
+              const rawAmount = ((p.accumulatedDuration || 0) / 3600) * pRate;
+              return acc + convert(rawAmount, p.currency || 'USD', userCurrency);
+            }, 0);
+
+            return (
+              <Card
+                key={client._id}
+                hoverable
+                onClick={() => navigate(`/clients/${client._id}`)}
+                className="flex flex-col gap-6 relative group cursor-pointer"
+              >
+                {/* Top Accent Line */}
+                <div className="absolute top-0 left-0 w-full h-1" style={{ backgroundColor: client.color }} />
+
+                <div className="flex justify-between items-start gap-4">
+                  <div>
+                    <h3 className="text-sm font-bold text-zinc-200 group-hover:text-brand-purple transition-all">
+                      {client.name}
+                    </h3>
+                    {client.company && (
+                      <div className="flex items-center gap-1.5 mt-1 text-zinc-500 text-[10px] font-semibold">
+                        <Building className="w-3 h-3 text-zinc-600" />
+                        <span>{client.company}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate(`/clients/${client._id}`);
+                    }}
+                    className="p-1.5 bg-zinc-900 border border-zinc-800/80 hover:border-zinc-700 rounded-lg text-zinc-500 hover:text-zinc-200 transition-all cursor-pointer flex items-center justify-center"
+                  >
+                    <ArrowUpRight className="w-3.5 h-3.5" />
+                  </button>
                 </div>
 
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    navigate(`/clients/${client._id}`);
-                  }}
-                  className="p-1.5 bg-zinc-900 border border-zinc-800/80 hover:border-zinc-700 rounded-lg text-zinc-500 hover:text-zinc-200 transition-all cursor-pointer flex items-center justify-center"
-                >
-                  <ArrowUpRight className="w-3.5 h-3.5" />
-                </button>
-              </div>
-
-              {/* Statistics placeholders */}
-              <div className="grid grid-cols-2 gap-4 border-t border-b border-zinc-900/60 py-4 text-center">
-                <div className="bg-zinc-950/40 p-2.5 rounded-xl border border-zinc-900/50">
-                  <span className="text-[9px] text-zinc-500 uppercase font-bold tracking-wider">Proyectos</span>
-                  <p className="text-zinc-300 text-xs font-black mt-0.5">Activos</p>
+                {/* Statistics Grid */}
+                <div className="grid grid-cols-2 gap-3 border-t border-b border-zinc-900/60 py-3.5 text-center">
+                  <div className="bg-zinc-950/40 p-2.5 rounded-xl border border-zinc-900/50">
+                    <span className="text-[9px] text-zinc-500 uppercase font-bold tracking-wider">Horas Trabajadas</span>
+                    <p className="text-emerald-400 text-xs font-black mt-0.5">{totalHours.toFixed(1)}h</p>
+                  </div>
+                  <div className="bg-zinc-950/40 p-2.5 rounded-xl border border-zinc-900/50">
+                    <span className="text-[9px] text-zinc-500 uppercase font-bold tracking-wider">Total Facturado</span>
+                    <p className="text-violet-400 text-xs font-black mt-0.5">{currencySymbol}{totalEarnedConverted.toFixed(2)}</p>
+                  </div>
                 </div>
-                <div className="bg-zinc-950/40 p-2.5 rounded-xl border border-zinc-900/50">
-                  <span className="text-[9px] text-zinc-500 uppercase font-bold tracking-wider">Moneda</span>
-                  <p className="text-zinc-300 text-xs font-black mt-0.5">{client.currency}</p>
-                </div>
-              </div>
 
               {/* Contacts info footer */}
               <div className="flex flex-col gap-2 text-[10px] text-zinc-500">
@@ -191,7 +225,8 @@ export const ClientsPage: React.FC = () => {
                 </div>
               </div>
             </Card>
-          ))}
+          );
+        })}
         </div>
       )}
 

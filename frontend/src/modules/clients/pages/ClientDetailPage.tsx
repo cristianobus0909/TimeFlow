@@ -22,6 +22,9 @@ import { Card } from '@shared/components/Card';
 import { Input } from '@shared/components/Input';
 import { Modal } from '@shared/components/Modal';
 import { toastStore } from '@/store/toastStore';
+import { settingsStore } from '@/store/settingsStore';
+import { currencyStore } from '@/store/currencyStore';
+import { getCurrencySymbol } from '@shared/lib/currency';
 
 type TabType = 'general' | 'projects' | 'contacts' | 'comments' | 'timeline';
 
@@ -125,11 +128,29 @@ export const ClientDetailPage: React.FC = () => {
     return <div className="py-16 text-center text-xs text-rose-500">Cliente no encontrado.</div>;
   }
 
+  const { settings } = settingsStore();
+  const { convert } = currencyStore();
+  const userCurrency = settings.currency || 'USD';
+  const currencySymbol = getCurrencySymbol(userCurrency);
+  const defaultRate = settings.defaultHourlyRate || 25;
+
   const clientProjects = projects.filter((p: any) => {
     if (!p.client) return false;
-    const clientId = typeof p.client === 'object' ? p.client._id : p.client;
-    return clientId === id || p.client?.name === client.name;
+    const pClientId = typeof p.client === 'object' ? p.client._id : p.client;
+    const pClientName = typeof p.client === 'object' ? (p.client.name || p.client.company) : p.client;
+    return (
+      (pClientId && String(pClientId) === String(id)) ||
+      (pClientName && client?.name && pClientName.trim().toLowerCase() === client.name.trim().toLowerCase())
+    );
   });
+
+  const totalWorkedSeconds = clientProjects.reduce((acc: number, p: any) => acc + (p.accumulatedDuration || 0), 0);
+  const totalHours = totalWorkedSeconds / 3600;
+  const totalEarnedConverted = clientProjects.reduce((acc: number, p: any) => {
+    const pRate = p.hourlyRate !== undefined ? p.hourlyRate : defaultRate;
+    const rawAmount = ((p.accumulatedDuration || 0) / 3600) * pRate;
+    return acc + convert(rawAmount, p.currency || 'USD', userCurrency);
+  }, 0);
 
   return (
     <div className="flex flex-col gap-6">
@@ -239,11 +260,11 @@ export const ClientDetailPage: React.FC = () => {
               <div className="flex flex-col gap-4 text-center">
                 <div className="bg-zinc-950 p-4 rounded-xl border border-zinc-900">
                   <span className="text-[9px] text-zinc-500 uppercase font-bold tracking-wider">Horas Trabajadas</span>
-                  <p className="text-2xl font-black text-zinc-200 mt-1">--</p>
+                  <p className="text-2xl font-black text-emerald-400 mt-1">{totalHours.toFixed(1)}h</p>
                 </div>
                 <div className="bg-zinc-950 p-4 rounded-xl border border-zinc-900">
                   <span className="text-[9px] text-zinc-500 uppercase font-bold tracking-wider">Total Facturado</span>
-                  <p className="text-2xl font-black text-brand-purple mt-1">{client.currency} $0.00</p>
+                  <p className="text-2xl font-black text-violet-400 mt-1">{currencySymbol}{totalEarnedConverted.toFixed(2)} {userCurrency}</p>
                 </div>
               </div>
             </Card>
