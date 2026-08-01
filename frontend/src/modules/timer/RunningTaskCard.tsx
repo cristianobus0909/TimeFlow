@@ -39,7 +39,7 @@ export const RunningTaskCard: React.FC = () => {
   const projectName = activeSession?.project?.name || 'Sin Proyecto';
   const clientName = activeSession?.client?.name || 'Sin Cliente';
   const rawBillingRate = activeSession?.hourlyRate || 0;
-  const convertedBillingRate = convert(rawBillingRate, userCurrency, userCurrency);
+  const convertedBillingRate = convert(rawBillingRate, 'USD', userCurrency);
   const billable = activeSession?.billable !== false;
 
   return (

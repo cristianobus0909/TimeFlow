@@ -125,7 +125,7 @@ export const AppLayout = () => {
   const compactProjectName = activeSessionData?.project?.name || '';
   const compactHourlyRate = activeSessionData?.hourlyRate || 0;
   const compactEarnedRaw = (seconds / 3600) * compactHourlyRate;
-  const compactEarnedConverted = convert(compactEarnedRaw, userCurrency, userCurrency);
+  const compactEarnedConverted = convert(compactEarnedRaw, 'USD', userCurrency);
 
   // Sync settings and check running timer on boot
   useEffect(() => {
