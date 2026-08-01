@@ -396,8 +396,8 @@ export const CommandCenterPage: React.FC = () => {
                 </div>
                 <div className="flex items-center justify-between text-xs border-t border-zinc-100 dark:border-zinc-900 pt-2.5">
                   <span className="text-zinc-500">Monto actual:</span>
-                  <span className="font-bold text-zinc-900 dark:text-zinc-200">
-                    {((seconds / 3600) * (overview?.currentSession?.hourlyRate || 0)).toFixed(2)} EUR
+                  <span className="font-bold text-zinc-900 dark:text-zinc-200 font-mono">
+                    {getCurrencySymbol(userPreferredCurrency)}{convert((seconds / 3600) * (overview?.currentSession?.hourlyRate || 0), baseOrgCurrency, userPreferredCurrency).toFixed(2)} {userPreferredCurrency}
                   </span>
                 </div>
               </div>
@@ -485,15 +485,15 @@ export const CommandCenterPage: React.FC = () => {
             <div className="flex flex-col gap-3 py-4">
               <div className="flex justify-between items-center text-xs">
                 <span className="font-semibold text-zinc-600 dark:text-zinc-400">Hoy</span>
-                <span className="font-bold text-zinc-950 dark:text-white font-mono">{money.today.toFixed(2)} EUR</span>
+                <span className="font-bold text-zinc-950 dark:text-white font-mono">{getCurrencySymbol(userPreferredCurrency)}{convert(money.today, baseOrgCurrency, userPreferredCurrency).toFixed(2)} {userPreferredCurrency}</span>
               </div>
               <div className="flex justify-between items-center text-xs border-t border-zinc-100 dark:border-zinc-900 pt-2.5">
                 <span className="font-semibold text-zinc-600 dark:text-zinc-400">Esta Semana</span>
-                <span className="font-bold text-zinc-950 dark:text-white font-mono">{money.week.toFixed(2)} EUR</span>
+                <span className="font-bold text-zinc-950 dark:text-white font-mono">{getCurrencySymbol(userPreferredCurrency)}{convert(money.week, baseOrgCurrency, userPreferredCurrency).toFixed(2)} {userPreferredCurrency}</span>
               </div>
               <div className="flex justify-between items-center text-xs border-t border-zinc-100 dark:border-zinc-900 pt-2.5">
                 <span className="font-semibold text-zinc-600 dark:text-zinc-400">Este Mes</span>
-                <span className="font-bold text-zinc-950 dark:text-white font-mono">{money.month.toFixed(2)} EUR</span>
+                <span className="font-bold text-zinc-950 dark:text-white font-mono">{getCurrencySymbol(userPreferredCurrency)}{convert(money.month, baseOrgCurrency, userPreferredCurrency).toFixed(2)} {userPreferredCurrency}</span>
               </div>
             </div>
           </Card>
@@ -561,7 +561,7 @@ export const CommandCenterPage: React.FC = () => {
                     <span className="font-bold text-zinc-850 dark:text-zinc-200 font-mono">
                       {proj.hoursUsed}h / {proj.hoursAvailable + proj.hoursUsed}h
                     </span>
-                    <span>{proj.profitability.toFixed(2)} EUR</span>
+                    <span className="font-mono">{getCurrencySymbol(userPreferredCurrency)}{convert(proj.profitability, baseOrgCurrency, userPreferredCurrency).toFixed(2)}</span>
                   </div>
                 </div>
               ))}
@@ -601,7 +601,7 @@ export const CommandCenterPage: React.FC = () => {
                       ))}
                     </div>
                   </div>
-                  <span className="font-bold text-zinc-900 dark:text-zinc-200 font-mono">{cli.amount.toFixed(2)} EUR</span>
+                  <span className="font-bold text-zinc-900 dark:text-zinc-200 font-mono">{getCurrencySymbol(userPreferredCurrency)}{convert(cli.amount, baseOrgCurrency, userPreferredCurrency).toFixed(2)}</span>
                 </div>
               ))}
               {clients.length === 0 && (

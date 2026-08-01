@@ -1,5 +1,8 @@
 import React from 'react';
 import { timerStore } from '@/store/timerStore';
+import { settingsStore } from '@/store/settingsStore';
+import { currencyStore } from '@/store/currencyStore';
+import { getCurrencySymbol } from '@shared/lib/currency';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@shared/services/api';
 import { Briefcase, Tag } from 'lucide-react';
@@ -8,6 +11,10 @@ import { TimerControls } from './TimerControls';
 
 export const RunningTaskCard: React.FC = () => {
   const { isRunning, seconds, activeSessionId, activeTaskName } = timerStore();
+  const { settings } = settingsStore();
+  const { convert } = currencyStore();
+  const userCurrency = settings.currency || 'USD';
+  const currencySymbol = getCurrencySymbol(userCurrency);
 
   const { data: activeSession } = useQuery({
     queryKey: ['activeSessionData', activeSessionId],
@@ -31,7 +38,8 @@ export const RunningTaskCard: React.FC = () => {
   const projectColor = activeSession?.project?.color || '#7C3AED';
   const projectName = activeSession?.project?.name || 'Sin Proyecto';
   const clientName = activeSession?.client?.name || 'Sin Cliente';
-  const billingRate = activeSession?.hourlyRate || 0;
+  const rawBillingRate = activeSession?.hourlyRate || 0;
+  const convertedBillingRate = convert(rawBillingRate, 'USD', userCurrency);
   const billable = activeSession?.billable !== false;
 
   return (
@@ -63,8 +71,8 @@ export const RunningTaskCard: React.FC = () => {
           </div>
           <div className="flex flex-col text-right">
             <span className="text-[10px] text-zinc-400 dark:text-zinc-500">Tarifa Acordada</span>
-            <span className="text-sm font-semibold text-zinc-800 dark:text-zinc-200 mt-1">
-              {billable ? `${billingRate} EUR/h` : 'No facturable'}
+            <span className="text-sm font-semibold text-zinc-800 dark:text-zinc-200 mt-1 font-mono">
+              {billable ? `${currencySymbol}${convertedBillingRate.toFixed(2)} ${userCurrency}/h` : 'No facturable'}
             </span>
           </div>
         </div>

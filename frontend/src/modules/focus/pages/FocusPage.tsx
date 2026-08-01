@@ -18,11 +18,18 @@ import {
 } from 'lucide-react';
 import { Button } from '@shared/components/Button';
 import { toastStore } from '@/store/toastStore';
+import { settingsStore } from '@/store/settingsStore';
+import { currencyStore } from '@/store/currencyStore';
+import { getCurrencySymbol } from '@shared/lib/currency';
 
 export const FocusPage: React.FC = () => {
   const navigate = useNavigate();
   const { showToast } = toastStore();
   const { isRunning, isPaused, seconds, activeSessionId, stopTimer, pauseTimer, resumeTimer } = timerStore();
+  const { settings } = settingsStore();
+  const { convert } = currencyStore();
+  const userCurrency = settings.currency || 'USD';
+  const currencySymbol = getCurrencySymbol(userCurrency);
 
   // Query Focus Overview
   const { data: focusOverview, refetch } = useQuery({
@@ -62,9 +69,10 @@ export const FocusPage: React.FC = () => {
   const progressPercent = Math.min(100, Math.round((achievedHours / targetHours) * 100));
 
   const amountAchieved = focusOverview?.dailyProgress?.amount?.achieved || 0;
-  const hourlyRate = currentSession?.hourlyRate || 0;
-  const sessionEarnings = (seconds / 3600) * hourlyRate;
-  const totalTodayEarnings = amountAchieved + (isRunning ? sessionEarnings : 0);
+  const rawHourlyRate = currentSession?.hourlyRate || 0;
+  const sessionEarningsRaw = (seconds / 3600) * rawHourlyRate;
+  const sessionEarnings = convert(sessionEarningsRaw, 'USD', userCurrency);
+  const totalTodayEarnings = convert(amountAchieved + (isRunning ? sessionEarningsRaw : 0), 'USD', userCurrency);
 
   const handleStop = async () => {
     try {
@@ -119,7 +127,7 @@ export const FocusPage: React.FC = () => {
                 {currentSession?.taskName}
               </span>
               <span className="text-sm font-semibold text-emerald-400 mt-1 font-mono">
-                + {sessionEarnings.toFixed(2)} EUR generados
+                + {currencySymbol}{sessionEarnings.toFixed(2)} {userCurrency} generados
               </span>
             </div>
 
@@ -201,7 +209,7 @@ export const FocusPage: React.FC = () => {
         <div className="flex flex-col leading-tight">
           <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Ganado Hoy</span>
           <span className="text-lg font-bold text-zinc-100 mt-1 font-mono">
-            {totalTodayEarnings.toFixed(2)} EUR
+            {currencySymbol}{totalTodayEarnings.toFixed(2)} {userCurrency}
           </span>
         </div>
       </div>
