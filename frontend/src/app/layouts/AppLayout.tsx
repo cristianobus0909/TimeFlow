@@ -14,6 +14,9 @@ import { authStore } from '@/store/authStore';
 import { Button } from '@shared/components/Button';
 import { Play, Pause, Square, Maximize2, Keyboard, AlertTriangle, Sparkles } from 'lucide-react';
 import { api } from '@shared/services/api';
+import { useQuery } from '@tanstack/react-query';
+import { currencyStore } from '@/store/currencyStore';
+import { getCurrencySymbol } from '@shared/lib/currency';
 
 const SubscriptionAlert = () => {
   const { user } = authStore();
@@ -106,6 +109,23 @@ export const AppLayout = () => {
     decrementAutoStart,
     startTimer,
   } = timerStore();
+
+  const { settings } = settingsStore();
+  const { convert } = currencyStore();
+  const userCurrency = settings.currency || 'USD';
+  const currencySymbol = getCurrencySymbol(userCurrency);
+
+  const { data: activeSessionData } = useQuery({
+    queryKey: ['activeSessionData', activeTaskId],
+    queryFn: () => api.get('/work-sessions/active'),
+    enabled: isRunning && isCompact,
+  });
+
+  const compactClientName = activeSessionData?.client?.name || '';
+  const compactProjectName = activeSessionData?.project?.name || '';
+  const compactHourlyRate = activeSessionData?.hourlyRate || 0;
+  const compactEarnedRaw = (seconds / 3600) * compactHourlyRate;
+  const compactEarnedConverted = convert(compactEarnedRaw, userCurrency, userCurrency);
 
   // Sync settings and check running timer on boot
   useEffect(() => {
@@ -390,19 +410,30 @@ export const AppLayout = () => {
       </svg>
 
       {/* Task description */}
-      <div className="flex flex-col text-left max-w-[120px]">
-        <span className="text-[10px] text-zinc-500 dark:text-zinc-400 font-medium uppercase tracking-wider">
-          {isRunning ? 'Cronometrando' : 'Sin Actividad'}
+      <div className="flex flex-col text-left max-w-[150px]">
+        <span className="text-[9px] text-zinc-500 dark:text-zinc-400 font-medium uppercase tracking-wider truncate">
+          {isRunning ? (
+            compactProjectName || compactClientName
+              ? `${compactClientName ? compactClientName + ' / ' : ''}${compactProjectName}`
+              : 'Cronometrando'
+          ) : 'Sin Actividad'}
         </span>
-        <span className="text-xs font-semibold text-zinc-800 dark:text-zinc-200 truncate">
+        <span className="text-xs font-bold text-zinc-800 dark:text-zinc-200 truncate">
           {isRunning ? activeTaskName : 'TimeFlow'}
         </span>
       </div>
 
       {/* Timer countdown */}
-      <span className="font-mono text-sm font-bold text-zinc-900 dark:text-zinc-100 ml-2">
+      <span className="font-mono text-sm font-bold text-zinc-900 dark:text-zinc-100 ml-1">
         {isRunning ? formatTime(seconds) : '00:00:00'}
       </span>
+
+      {/* Live Earnings */}
+      {isRunning && compactHourlyRate > 0 && (
+        <span className="text-xs font-bold text-emerald-400 font-mono bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20 ml-1">
+          +{currencySymbol}{compactEarnedConverted.toFixed(2)}
+        </span>
+      )}
 
       {/* Controls */}
       <div className="flex items-center gap-1 border-l border-zinc-200 dark:border-zinc-800 pl-2 ml-1">
