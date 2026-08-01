@@ -12,6 +12,9 @@ import { Input } from '@shared/components/Input';
 import { Modal } from '@shared/components/Modal';
 import { toastStore } from '@/store/toastStore';
 import { authStore } from '@/store/authStore';
+import { settingsStore } from '@/store/settingsStore';
+import { currencyStore } from '@/store/currencyStore';
+import { getCurrencySymbol } from '@shared/lib/currency';
 
 const projectSchema = z.object({
   name: z.string().min(1, 'El nombre es obligatorio'),
@@ -32,6 +35,11 @@ export const ProjectsPage = () => {
   const queryClient = useQueryClient();
   const { showToast } = toastStore();
   const { user } = authStore();
+  const { settings } = settingsStore();
+  const { convert } = currencyStore();
+  const userCurrency = settings.currency || 'USD';
+  const currencySymbol = getCurrencySymbol(userCurrency);
+  const defaultRate = settings.defaultHourlyRate || 25;
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const [isAddClientModalOpen, setIsAddClientModalOpen] = useState(false);
@@ -219,11 +227,16 @@ export const ProjectsPage = () => {
                   {project.name}
                 </h3>
               </Link>
-              {project.client && (
-                <span className="text-[10px] text-zinc-500 font-semibold block mb-2">
-                  Cliente: {typeof project.client === 'object' ? (project.client.name || project.client.company) : project.client}
+              <div className="flex flex-wrap justify-between items-center gap-2 mb-2">
+                {project.client && (
+                  <span className="text-[10px] text-zinc-500 font-semibold block">
+                    Cliente: {typeof project.client === 'object' ? (project.client.name || project.client.company) : project.client}
+                  </span>
+                )}
+                <span className="text-[10px] font-mono font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-lg">
+                  {currencySymbol}{convert(project.hourlyRate || defaultRate, 'USD', userCurrency).toFixed(2)} {userCurrency}/h
                 </span>
-              )}
+              </div>
               {project.description && (
                 <p className="text-[11px] text-zinc-500 line-clamp-2 leading-relaxed">{project.description}</p>
               )}

@@ -22,6 +22,9 @@ import { Modal } from '@shared/components/Modal';
 import { Input } from '@shared/components/Input';
 import { timerStore } from '@/store/timerStore';
 import { toastStore } from '@/store/toastStore';
+import { settingsStore } from '@/store/settingsStore';
+import { currencyStore } from '@/store/currencyStore';
+import { getCurrencySymbol } from '@shared/lib/currency';
 
 export const ProjectDetailPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -29,6 +32,11 @@ export const ProjectDetailPage = () => {
   const queryClient = useQueryClient();
   const { showToast } = toastStore();
   const { startTimer, isRunning, setCompact } = timerStore();
+  const { settings } = settingsStore();
+  const { convert } = currencyStore();
+  const userCurrency = settings.currency || 'USD';
+  const currencySymbol = getCurrencySymbol(userCurrency);
+  const defaultRate = settings.defaultHourlyRate || 25;
   
   const [isAddTasksOpen, setIsAddTasksOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
@@ -332,11 +340,19 @@ export const ProjectDetailPage = () => {
             <span className="w-3.5 h-3.5 rounded-full" style={{ backgroundColor: project.color }} />
             <h2 className="text-2xl font-bold text-zinc-100 font-display">{project.name}</h2>
           </div>
-          {project.client && (
-            <span className="text-xs text-zinc-500 font-semibold mt-1 block">
-              Cliente: {typeof project.client === 'object' ? (project.client.name || project.client.company) : project.client}
+          <div className="flex flex-wrap items-center gap-3 mt-1.5">
+            {project.client && (
+              <span className="text-xs text-zinc-500 font-semibold block">
+                Cliente: {typeof project.client === 'object' ? (project.client.name || project.client.company) : project.client}
+              </span>
+            )}
+            <span className="text-xs font-mono font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-0.5 rounded-lg">
+              Tarifa: {currencySymbol}{convert(project.hourlyRate || defaultRate, 'USD', userCurrency).toFixed(2)} {userCurrency}/h
             </span>
-          )}
+            <span className="text-xs font-mono font-bold text-violet-400 bg-violet-500/10 border border-violet-500/20 px-2.5 py-0.5 rounded-lg">
+              Valor Generado: {currencySymbol}{convert(((project.accumulatedDuration || 0) / 3600) * (project.hourlyRate || defaultRate), 'USD', userCurrency).toFixed(2)} {userCurrency}
+            </span>
+          </div>
         </div>
         <div className="flex items-center gap-2.5">
           {projectTasks.length > 0 && (
