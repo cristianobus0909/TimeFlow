@@ -222,6 +222,36 @@ export const ProjectDetailPage = () => {
     enabled: isAddTasksOpen,
   });
 
+  // Extract categories 100% dynamically from database and active tasks (Zero hardcoding)
+  const taskList = Array.isArray(allTasks) ? allTasks : (allTasks as any)?.tasks || [];
+
+  const dynamicCategories = useMemo(() => {
+    const map = new Map<string, string>();
+    dbCategories.forEach((c: any) => {
+      if (c && c.name) {
+        map.set(String(c._id || c.name), String(c.name));
+      }
+    });
+    taskList.forEach((t: any) => {
+      if (t && t.category) {
+        const catName = typeof t.category === 'object' ? t.category.name : String(t.category);
+        const catId = typeof t.category === 'object' ? (t.category._id || t.category.name) : String(t.category);
+        if (catName && !map.has(catId)) {
+          map.set(catId, catName);
+        }
+      }
+    });
+    return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
+  }, [dbCategories, taskList]);
+
+  const addableTasks = useMemo(() => {
+    return taskList.filter((t: any) => {
+      if (taskCategoryFilter === 'ALL') return true;
+      const catVal = typeof t.category === 'object' ? (t.category?._id || t.category?.name) : t.category;
+      return String(catVal) === String(taskCategoryFilter) || String(t.category?.name || t.category) === String(taskCategoryFilter);
+    });
+  }, [taskList, taskCategoryFilter]);
+
   // Mutations
   const addTaskMutation = useMutation({
     mutationFn: ({ taskId, quantity }: { taskId: string; quantity: number }) =>
@@ -324,34 +354,6 @@ export const ProjectDetailPage = () => {
       </div>
     );
   }
-
-  // Extract categories 100% dynamically from database and active tasks (Zero hardcoding)
-  const taskList = Array.isArray(allTasks) ? allTasks : (allTasks as any)?.tasks || [];
-
-  const dynamicCategories = useMemo(() => {
-    const map = new Map<string, string>();
-    dbCategories.forEach((c: any) => {
-      if (c && c.name) {
-        map.set(String(c._id || c.name), String(c.name));
-      }
-    });
-    taskList.forEach((t: any) => {
-      if (t && t.category) {
-        const catName = typeof t.category === 'object' ? t.category.name : String(t.category);
-        const catId = typeof t.category === 'object' ? (t.category._id || t.category.name) : String(t.category);
-        if (catName && !map.has(catId)) {
-          map.set(catId, catName);
-        }
-      }
-    });
-    return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
-  }, [dbCategories, taskList]);
-
-  const addableTasks = taskList.filter((t: any) => {
-    if (taskCategoryFilter === 'ALL') return true;
-    const catVal = typeof t.category === 'object' ? (t.category?._id || t.category?.name) : t.category;
-    return String(catVal) === String(taskCategoryFilter) || String(t.category?.name || t.category) === String(taskCategoryFilter);
-  });
 
   return (
     <div className="flex flex-col gap-8 select-text">
