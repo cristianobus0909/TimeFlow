@@ -21,7 +21,7 @@ const SettingsSchema = new Schema<ISettings>(
     language: { type: String, enum: ['es', 'en'], default: 'es' },
     theme: { type: String, enum: ['dark', 'light'], default: 'dark' },
     currency: { type: String, default: 'USD' },
-    defaultHourlyRate: { type: Number, default: 25.0 },
+    defaultHourlyRate: { type: Number, default: 0 },
     timezone: { type: String, default: 'UTC' },
     timeFormat: { type: String, enum: ['12h', '24h'], default: '24h' },
     soundAlerts: { type: Boolean, default: true },

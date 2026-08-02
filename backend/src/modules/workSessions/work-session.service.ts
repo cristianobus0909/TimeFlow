@@ -98,13 +98,13 @@ export class WorkSessionService {
     // 5. Try finding user/organization defaultHourlyRate from settings
     try {
       const userSettings = await Settings.findOne({ userId: new Types.ObjectId(orgId) });
-      if (userSettings && (userSettings as any).defaultHourlyRate && (userSettings as any).defaultHourlyRate > 0) {
+      if (userSettings && (userSettings as any).defaultHourlyRate !== undefined) {
         return (userSettings as any).defaultHourlyRate;
       }
     } catch (e) {}
 
-    // Fallback default hourly rate for SaaS workspace (25.00 €/h)
-    return 25.0;
+    // Default to 0 if no hourly rate configured anywhere
+    return 0;
   }
 
   public async startSession(data: StartWorkSessionInput, orgId: string, userId: string): Promise<IWorkSession> {
